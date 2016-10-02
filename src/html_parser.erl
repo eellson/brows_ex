@@ -1,5 +1,8 @@
 -module(html_parser).
 -export([parse/1, parse_and_scan/1, format_error/1]).
+-file("src/html_parser.yrl", 16).
+
+unwrap({_,_,V}) -> V.
 
 -file("/usr/local/Cellar/erlang/18.3/lib/erlang/lib/parsetools-2.1.1/include/yeccpre.hrl", 0).
 %%
@@ -175,7 +178,7 @@ yecctoken2string(Other) ->
 
 
 
--file("src/html_parser.erl", 178).
+-file("src/html_parser.erl", 181).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 yeccpars2(0=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -252,7 +255,8 @@ yeccpars2_5(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
 yeccpars2_6(S, char, Ss, Stack, T, Ts, Tzr) ->
  yeccpars1(S, 6, Ss, Stack, T, Ts, Tzr);
 yeccpars2_6(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
- yeccgoto_chars(hd(Ss), Cat, Ss, Stack, T, Ts, Tzr).
+ NewStack = yeccpars2_6_(Stack),
+ yeccgoto_chars(hd(Ss), Cat, Ss, NewStack, T, Ts, Tzr).
 
 yeccpars2_7(_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  [_|Nss] = Ss,
@@ -320,20 +324,28 @@ yeccpars2_5_(__Stack0) ->
    [ __1 ]
   end | __Stack].
 
+-compile({inline,yeccpars2_6_/1}).
+-file("src/html_parser.yrl", 10).
+yeccpars2_6_(__Stack0) ->
+ [__1 | __Stack] = __Stack0,
+ [begin
+   unwrap ( __1 )
+  end | __Stack].
+
 -compile({inline,yeccpars2_7_/1}).
 -file("src/html_parser.yrl", 1).
 yeccpars2_7_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
-   [ __1 , __2 ]
+   { unwrap ( __1 ) }
   end | __Stack].
 
 -compile({inline,yeccpars2_8_/1}).
--file("src/html_parser.yrl", 10).
+-file("src/html_parser.yrl", 9).
 yeccpars2_8_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
-   [ __1 | __2 ]
+   [ unwrap ( __1 ) | __2 ]
   end | __Stack].
 
 -compile({inline,yeccpars2_9_/1}).
@@ -357,7 +369,8 @@ yeccpars2_10_(__Stack0) ->
 yeccpars2_11_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
-   [ __1 , { children , __2 } , __3 ]
+   { unwrap ( __1 ) , { children , __2 } }
   end | __Stack].
 
 
+-file("src/html_parser.yrl", 19).
