@@ -3,7 +3,7 @@ Definitions.
 START_TAG = \<[A-Za-z0-9\w\s]+\>
 END_TAG   = \<\/[A-Za-z0-9\w\s]+\>
 CHARACTER = [A-Za-z0-9\w\s\.\,\']
-NEW_LINE  = [\n]
+NEW_LINE  = [\n]\s*
 
 Rules.
 
