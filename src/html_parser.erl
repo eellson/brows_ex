@@ -345,7 +345,7 @@ yeccpars2_7_(__Stack0) ->
 yeccpars2_8_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
-   [ unwrap ( __1 ) | __2 ]
+   unicode : characters_to_binary ( [ unwrap ( __1 ) | __2 ] )
   end | __Stack].
 
 -compile({inline,yeccpars2_9_/1}).
@@ -369,7 +369,7 @@ yeccpars2_10_(__Stack0) ->
 yeccpars2_11_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
-   { unwrap ( __1 ) , { children , __2 } }
+   { unwrap ( __1 ) , __2 }
   end | __Stack].
 
 
