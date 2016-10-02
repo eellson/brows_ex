@@ -3,19 +3,25 @@ defmodule BrowsEx.Renderer do
   @spec render(tuple) :: tuple
   def render(tree) do
     IO.inspect tree
-    render_node tree
+    IO.puts render_node tree
   end
 
   @spec render_text_node(String.t) :: :ok
-  def render_text_node(text), do: IO.puts text
+  def render_text_node(text), do: text
 
-  def render_text_node(name, text), do: IO.puts text
+  def render_text_node('<title>', _text), do: ""
+  def render_text_node('<h1>', text), do: "# #{text}"
+  def render_text_node('<p>', text), do: text
+  def render_text_node('<em>', text), do: "_#{text}_"
+  def render_text_node('<small>', text), do: text
+  def render_text_node('<li>', text), do: "* #{text}"
+  def render_text_node(name, text), do: text
 
   def render_node(text) when is_binary text do
-    render_text_node(text)
+    render_text_node(text) <> "\n"
   end
   def render_node({name, [child]}) when is_binary child do
-    render_text_node(name, child)
+    render_text_node(name, child) <> "\n"
   end
   def render_node({name, [child]}) when is_tuple child do
     render_node(child)
@@ -24,9 +30,8 @@ defmodule BrowsEx.Renderer do
     render_children(children)
   end
 
-  def render_children([]), do: nil
+  def render_children([]), do: ""
   def render_children([child | tail]) do
-    render_node(child)
-    render_children(tail)
+    render_node(child) <> render_children(tail)
   end
 end
