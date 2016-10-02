@@ -10,24 +10,26 @@ defmodule BrowsEx.Renderer do
   def render_text_node(text), do: text
 
   def render_text_node('<title>', _text), do: ""
-  def render_text_node('<h1>', text), do: "# #{text}"
-  def render_text_node('<p>', text), do: text
+  def render_text_node('<h1>', text), do: "# text" <> "\n\n"
+  def render_text_node('<h2>', text), do: "## text" <> "\n\n"
+  def render_text_node('<p>', text), do: text <> "\n\n"
   def render_text_node('<em>', text), do: "_#{text}_"
+  def render_text_node('<strong>', text), do: "*#{text}*"
   def render_text_node('<small>', text), do: text
-  def render_text_node('<li>', text), do: "* #{text}"
+  def render_text_node('<li>', text), do: "* #{text}" <> "\n\n"
   def render_text_node(name, text), do: text
 
   def render_node(text) when is_binary text do
-    render_text_node(text) <> "\n"
+    render_text_node(text)
   end
   def render_node({name, [child]}) when is_binary child do
-    render_text_node(name, child) <> "\n"
+    render_text_node(name, child)
   end
   def render_node({name, [child]}) when is_tuple child do
     render_node(child)
   end
   def render_node({name, children}) when is_list children do
-    render_children(children)
+    render_node({name, [render_children(children)]})
   end
 
   def render_children([]), do: ""
