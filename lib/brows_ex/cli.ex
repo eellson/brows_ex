@@ -12,15 +12,17 @@ defmodule BrowsEx.CLI do
       <body>
         <h1>Hello world</h1>
         <p>OK, let's see if we can successfully <em>parse</em> this.</p>
-        <p>k still work</p>
+        <p>k still works</p>
         <div>
-          <h2>ok, so<small>what</small></h2>
-          <p>Kinda just checking this shit works
-            <ul>
-              <li>umm</li>
-              <li>yeah</li>
-            </ul>
-          </p>
+          <h2>ok, so <small>what</small></h2>
+          <p>Kinda just checking this shit works</p>
+          <ul>
+            <li>umm</li>
+            <li>yeah</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>OK SO SERIOUSLY</strong> this thing seems to kinda work</p>
         </div>
       </body>
     </html>
