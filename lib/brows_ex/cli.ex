@@ -28,7 +28,8 @@ defmodule BrowsEx.CLI do
     </html>
     """
 
-    html
+    options[:url]
+    |> BrowsEx.Requester.request
     |> BrowsEx.Parser.parse
     |> BrowsEx.Renderer.render
   end
