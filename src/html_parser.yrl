@@ -2,7 +2,7 @@ Terminals start_tag end_tag char.
 Nonterminals tag tag_contents chars.
 Rootsymbol tag.
 
-tag -> start_tag end_tag : {unwrap('$1')}.
+tag -> start_tag end_tag : {unwrap('$1'), []}.
 tag -> start_tag tag_contents end_tag : {unwrap('$1'), '$2'}.
 
 tag_contents -> tag : ['$1'].
