@@ -17,6 +17,7 @@ defmodule BrowsEx.Renderer do
   def render_text_node('<strong>', text), do: "*#{text}*"
   def render_text_node('<small>', text), do: text
   def render_text_node('<li>', text), do: "* #{text}" <> "\n\n"
+  def render_text_node('<style type="text/css">', text), do: ""
   def render_text_node(name, text), do: text
 
   def render_node(text) when is_binary text do
