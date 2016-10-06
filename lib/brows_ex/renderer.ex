@@ -2,7 +2,7 @@
 defmodule BrowsEx.Renderer do
   @spec render(tuple) :: tuple
   def render(tree) do
-    IO.inspect tree
+    # IO.inspect tree
     IO.puts render_node tree
   end
 
@@ -20,7 +20,7 @@ defmodule BrowsEx.Renderer do
   def render_text_node('<style type="text/css">', text), do: ""
   def render_text_node(name, text), do: text
 
-  def render_node(text) when is_binary text do
+  def render_node(text) when (is_binary(text) or is_list(text)) do
     render_text_node(text)
   end
   def render_node({name, [child]}) when is_binary child do
