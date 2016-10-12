@@ -2,11 +2,20 @@ defmodule BrowsEx.Requester do
   def request(url), do: get(url)
 
   def get(url) do
-    {:ok, response} = HTTPoison.get url
+    {:ok, response} =
+      url
+      |> HTTPoison.get
 
     response
-    |> IO.inspect
+    # |> IO.inspect
     |> handle_response
+  end
+
+  def transform_url(url, base) do
+    base
+    |> URI.parse
+    |> URI.merge(url)
+    |> to_string
   end
 
   defp handle_response(%HTTPoison.Response{headers: headers} = response) do

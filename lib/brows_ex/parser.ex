@@ -1,7 +1,6 @@
 defmodule BrowsEx.Parser do
   @spec parse(binary) :: tuple
-  def parse(input) do
-    input
-    |> Floki.parse
+  def parse(html) do
+    html |> Floki.parse
   end
 end

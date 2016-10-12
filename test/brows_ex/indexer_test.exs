@@ -12,12 +12,12 @@ defmodule BrowsEx.IndexerTest do
                "p", [], [{"a", [], ["text"]}, {"a", [], ["text"]}]},{
              "a", [], ["text"]}]}]}
 
-    assert html |> Indexer.index("a") == {{"ul", [],
+    assert html |> Indexer.index("a") |> Floki.find("[brows_ex_index=1]") == {"ul", [],
       [{"li", [],
         [{"p", [], ["Sentence with a ", {"a", [{"brows_ex_index", 1}], ["link"]}, "."]}]},
        {"li", [],
         [{"p", [],
           [{"a", [{"brows_ex_index", 2}], ["text"]}, {"a", [{"brows_ex_index", 3}], ["text"]}]},
-         {"a", [{"brows_ex_index", 4}], ["text"]}]}]}, 4}
+         {"a", [{"brows_ex_index", 4}], ["text"]}]}]}
   end
 end

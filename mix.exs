@@ -15,7 +15,7 @@ defmodule BrowsEx.Mixfile do
   #
   # Type "mix help compile.app" for more information
   def application do
-    [applications: [:logger, :httpoison, :floki]]
+    [applications: [:logger, :httpoison, :floki, :ex_ncurses]]
   end
 
   # Dependencies can be Hex packages:
@@ -29,6 +29,7 @@ defmodule BrowsEx.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [{:httpoison, "~> 0.9.2"},
-     {:floki, "~> 0.10.1"}]
+     {:floki, "~> 0.10.1"},
+     {:ex_ncurses, git: "https://github.com/jfreeze/ex_ncurses.git"}]
   end
 end
