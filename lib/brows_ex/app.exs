@@ -20,46 +20,23 @@ defmodule BrowsEx.App do
   end
 
   def get_tree(url) do
-    # tree = 
-    #   url
-    #   |> BrowsEx.Requester.request
-    #   |> BrowsEx.Parser.parse
-    #   |> BrowsEx.Indexer.index("a")
+    tree =
+      url
+      |> BrowsEx.Requester.request
+      |> BrowsEx.Parser.parse
+      |> BrowsEx.Indexer.index("a")
       # |> IO.inspect
     
-    tree = """
-    <html>
-      <head>
-        <title>Hello, world</title>
-      </head>
-      <body>
-        <h1>Hello <a href="#">world</a></h1>
-        <p>OK, let's <a href="#">see</a> if <a href="#">we</a> can successfully <em>parse</em> this.</p>
-        <p>k still works</p>
-        <div>
-          <h2>ok, so <small>what</small></h2>
-          <p>Kinda just checking this shit works</p>
-          <ul>
-            <li>umm</li>
-            <li>yeah</li>
-          </ul>
-        </div>
-        <div>
-          <p><strong>OK SO SERIOUSLY</strong> this thing seems to kinda work</p>
-        </div>
-      </body>
-    </html>
-    """ |> BrowsEx.Parser.parse |> BrowsEx.Indexer.index("a")
 
     {url, tree}
   end
 
   def render({url, tree}, highlight \\ 1) do
-    # ExNcurses.clear
-    # print_title("BrowsEx = #{url}")
+    ExNcurses.clear
+    print_title("BrowsEx = #{url}")
 
     tree
-    |> IO.inspect
+    # |> IO.inspect
     |> BrowsEx.Renderer.render(highlight)
     # |> IO.inspect
     # |> ExNcurses.printw
