@@ -8,8 +8,14 @@ defmodule BrowsEx.App do
   def init_ncurses do
     :application.start(:cecho)
     :cecho.start_color
+    :cecho.init_pair(1, 1, 0) # red
+    :cecho.init_pair(2, 2, 0) # green
+    :cecho.init_pair(3, 3, 0) # yellow
     :cecho.init_pair(4, 4, 0) # blue
     :cecho.init_pair(5, 5, 0) # purple
+    :cecho.init_pair(6, 6, 0) # cyan
+    :cecho.init_pair(7, 7, 0) # white
+    :cecho.init_pair(8, 8, 0) # grey
     :cecho.cbreak
   end
 
