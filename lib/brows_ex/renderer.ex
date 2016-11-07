@@ -39,18 +39,13 @@ defmodule BrowsEx.Renderer do
 
   def render_link(highlight, highlight, children) do
     :cecho.attron(5 <<< 8)
-    render_link(children, highlight, "!", "!")
+    render_node(children, highlight)
     :cecho.attroff(5 <<< 8)
   end
   def render_link(index, highlight, children) do
     :cecho.attron(4 <<< 8)
-    render_link(children, highlight, "[", "]")
-    :cecho.attroff(4 <<< 8)
-  end
-  def render_link(children, highlight, open, close) do
-    print(open)
     render_node(children, highlight)
-    print(close)
+    :cecho.attroff(4 <<< 8)
   end
 
   def print(string) do
