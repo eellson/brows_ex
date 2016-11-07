@@ -1,18 +1,20 @@
 defmodule BrowsEx.Renderer do
   use Bitwise
 
+  @no_render ~w(head script)
+
   @spec render(tuple, integer) :: tuple
   def render(tree, highlight \\ 1) do
     tree
     |> render_node(Integer.to_string(highlight))
   end
 
-  def render_node({"head", attributes, children}, highlight), do: nil
   def render_node({"a", attributes, children}, highlight) do
     attributes
     |> get_index
     |> render_link(highlight, children)
   end
+  def render_node({name, attributes, children}, highlight) when name in @no_render, do: nil
   def render_node({name, attributes, children}, highlight) do
     render_node(children, highlight)
   end
