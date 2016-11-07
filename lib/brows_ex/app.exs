@@ -6,13 +6,18 @@ defmodule BrowsEx.App do
   end
 
   def init_ncurses do
-    ExNcurses.initscr
-    ExNcurses.start_color
-    ExNcurses.cbreak
+    :application.start(:cecho)
+    :cecho.start_color
+    :cecho.init_pair(4, 4, 0) # blue
+    :cecho.init_pair(5, 5, 0) # purple
+    :cecho.cbreak
   end
 
-  def term_ncurses, do: ExNcurses.endwin
-  
+  def term_ncurses do
+    :application.stop(:cecho)
+    System.halt
+  end
+
   def get_and_render_page(url, highlight \\ 1) do
     url
     |> get_tree
@@ -25,34 +30,30 @@ defmodule BrowsEx.App do
       |> BrowsEx.Requester.request
       |> BrowsEx.Parser.parse
       |> BrowsEx.Indexer.index("a")
-      # |> IO.inspect
-    
 
     {url, tree}
   end
 
   def render({url, tree}, highlight \\ 1) do
-    ExNcurses.clear
+    :cecho.erase
+
     print_title("BrowsEx = #{url}")
 
     tree
-    # |> IO.inspect
     |> BrowsEx.Renderer.render(highlight)
-    # |> IO.inspect
-    # |> ExNcurses.printw
 
-    ExNcurses.refresh
+    :cecho.refresh
 
     wait_for_input({url, tree}, highlight)
   end
 
-  def print_title(string), do: ExNcurses.printw(string)
+  def print_title(string) do
+    string
+    |> BrowsEx.Renderer.print
+  end
 
   def wait_for_input({url, tree}, highlight) do
-    ExNcurses.keypad
-    ExNcurses.flushinp
-
-    char = ExNcurses.getchar
+    char = :cecho.getch
 
     char |> handle_char({url, tree}, highlight)
   end
@@ -65,9 +66,7 @@ defmodule BrowsEx.App do
 
   def do_click({current_url, tree}, index) do
     tree
-    # |> IO.inspect
     |> Floki.find("[brows_ex_index=#{index}]")
-    # |> IO.inspect
     |> List.first
     |> Floki.attribute("href")
     |> List.first
