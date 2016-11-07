@@ -12,10 +12,16 @@ defmodule BrowsEx.Renderer do
     |> render_node(Integer.to_string(highlight))
   end
 
+  def render_node({"h1", attributes, children}, highlight) do
+    render_h1(children, highlight)
+  end
   def render_node({"a", attributes, children}, highlight) do
     attributes
     |> get_index
     |> render_link(highlight, children)
+  end
+  def render_node({"li", attributes, children}, highlight) do
+    render_list_item(children, highlight)
   end
   def render_node({name, attributes, children}, highlight) when name in @no_render, do: nil
   def render_node({name, attributes, children}, highlight) when name in @block_level do
@@ -37,6 +43,13 @@ defmodule BrowsEx.Renderer do
     index
   end
 
+  def render_h1(children, highlight) do
+    print("\n")
+    :cecho.attron(1 <<< 8)
+    render_node(children, highlight)
+    :cecho.attroff(1 <<< 8)
+  end
+
   def render_link(highlight, highlight, children) do
     :cecho.attron(5 <<< 8)
     render_node(children, highlight)
@@ -46,6 +59,14 @@ defmodule BrowsEx.Renderer do
     :cecho.attron(4 <<< 8)
     render_node(children, highlight)
     :cecho.attroff(4 <<< 8)
+  end
+
+  def render_list_item(children, highlight) do
+    print("\n")
+    :cecho.attron(8 <<< 8)
+    print("* ")
+    :cecho.attroff(8 <<< 8)
+    render_node(children, highlight)
   end
 
   def print(string) do
