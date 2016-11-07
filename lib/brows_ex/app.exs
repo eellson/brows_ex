@@ -61,6 +61,7 @@ defmodule BrowsEx.App do
   def handle_char(?j, {url, tree}, highlight), do: render({url, tree}, highlight + 1)
   def handle_char(?k, {url, tree}, highlight), do: render({url, tree}, highlight - 1)
   def handle_char(?l, {url, tree}, highlight), do: do_click({url, tree}, highlight)
+  def handle_char(?r, {url, tree}, highlight), do: get_and_render_page(url)
   def handle_char(?q, {url, tree}, highlight), do: nil
   def handle_char(_, {url, tree}, highlight), do: wait_for_input({url, tree}, highlight)
 
