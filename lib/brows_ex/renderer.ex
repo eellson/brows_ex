@@ -2,6 +2,9 @@ defmodule BrowsEx.Renderer do
   use Bitwise
 
   @no_render ~w(head script)
+  @block_level ~w(address article aside blockquote canvas dd div dl fieldset
+    figcaption figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr li main nav
+    noscript ol output p pre section table tfoot ul video tr)
 
   @spec render(tuple, integer) :: tuple
   def render(tree, highlight \\ 1) do
@@ -15,6 +18,10 @@ defmodule BrowsEx.Renderer do
     |> render_link(highlight, children)
   end
   def render_node({name, attributes, children}, highlight) when name in @no_render, do: nil
+  def render_node({name, attributes, children}, highlight) when name in @block_level do
+    print("\n")
+    render_node(children, highlight)
+  end
   def render_node({name, attributes, children}, highlight) do
     render_node(children, highlight)
   end
