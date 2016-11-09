@@ -32,7 +32,8 @@ defmodule BrowsEx.Renderer do
     render_node(children, highlight)
   end
   def render_node([head|tail], highlight) do
-    [render_node(head, highlight), render_node(tail, highlight)]
+    render_node(head, highlight)
+    render_node(tail, highlight)
   end
   def render_node(<<leaf::binary>>, highlight), do: leaf |> print
   def render_node(_other, highlight), do: nil
