@@ -17,6 +17,7 @@ defmodule BrowsEx.App do
     :cecho.init_pair(7, 7, 0) # white
     :cecho.init_pair(8, 8, 0) # grey
     :cecho.cbreak
+    # :cecho.scrollok(0, true)
   end
 
   def term_ncurses do
@@ -27,17 +28,39 @@ defmodule BrowsEx.App do
   def get_and_render_page(url, highlight \\ 1) do
     url
     |> get_tree
-    |> render(highlight)
+    # |> IO.inspect
+    # |> render(highlight)
   end
 
-  def get_tree(url) do
+  def get_tree(url, page \\ 0) do
+    :cecho.erase
+
+    {height, width} = :cecho.getmaxyx
+
     tree =
       url
       |> BrowsEx.Requester.request
+      # |> get_h1s
       |> BrowsEx.Parser.parse
       |> BrowsEx.Indexer.index("a")
+      |> BrowsEx.RendererV2.render
+      |> Enum.reverse
+      |> Enum.chunk(height, height, [])
+      |> Enum.at(page)
+      |> Enum.map(fn line ->
+           line.instructions
+           |> Enum.reverse
+           |> Enum.map(fn {func, arg} ->
+                func.(arg)
+              end)
+           :cecho.addch(?\n)
+         end)
 
-    {url, tree}
+      :cecho.refresh
+
+      wait_for_input(url, page)
+
+    # {url, tree}
   end
 
   def render({url, tree}, highlight \\ 1) do
@@ -47,6 +70,8 @@ defmodule BrowsEx.App do
 
     tree
     |> BrowsEx.Renderer.render(highlight)
+
+    # :cecho.move(0,0)
 
     :cecho.refresh
 
@@ -58,10 +83,10 @@ defmodule BrowsEx.App do
     |> BrowsEx.Renderer.print
   end
 
-  def wait_for_input({url, tree}, highlight) do
+  def wait_for_input(url, page) do
     char = :cecho.getch
 
-    char |> handle_char({url, tree}, highlight)
+    char |> handle_char(url, page)
   end
 
   def handle_char(?j, {url, tree}, highlight), do: render({url, tree}, highlight + 1)
@@ -69,6 +94,17 @@ defmodule BrowsEx.App do
   def handle_char(?l, {url, tree}, highlight), do: do_click({url, tree}, highlight)
   def handle_char(?r, {url, tree}, highlight), do: get_and_render_page(url)
   def handle_char(?q, {url, tree}, highlight), do: nil
+  def handle_char(?p, url, page) do
+    get_tree(url, page - 1)
+  end
+  def handle_char(?n, url, page) do
+    get_tree(url, page + 1)
+  end
+  def handle_char(?c, {url, tree}, highlight) do
+    :cecho.erase
+    :cecho.move(0,0)
+    wait_for_input({url, tree}, highlight)
+  end
   def handle_char(_, {url, tree}, highlight), do: wait_for_input({url, tree}, highlight)
 
   def do_click({current_url, tree}, index) do
