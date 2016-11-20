@@ -1,8 +1,13 @@
 defmodule BrowsEx.App do
   def run(url) do
+    init_cursor
     init_ncurses
     get_and_render_page(url)
     term_ncurses
+  end
+
+  def init_cursor do
+    BrowsEx.Cursor.new
   end
 
   def init_ncurses do
@@ -25,7 +30,7 @@ defmodule BrowsEx.App do
     System.halt
   end
 
-  def get_and_render_page(url, highlight \\ 1) do
+  def get_and_render_page(url, page \\ 0) do
     url
     |> get_tree
     # |> IO.inspect
@@ -43,39 +48,54 @@ defmodule BrowsEx.App do
       # |> get_h1s
       |> BrowsEx.Parser.parse
       |> BrowsEx.Indexer.index("a")
-      |> BrowsEx.RendererV2.render
-      |> Enum.reverse
-      |> Enum.chunk(height, height, [])
-      |> Enum.at(page)
-      |> Enum.map(fn line ->
-           line.instructions
-           |> Enum.reverse
-           |> Enum.map(fn {func, arg} ->
-                func.(arg)
-              end)
-           :cecho.addch(?\n)
+
+    tree
+    |> BrowsEx.RendererV2.render
+    # |> IO.inspect
+    |> Enum.reverse
+    |> Enum.chunk(height, height, [])
+    |> Enum.at(page)
+    |> Enum.map(fn line ->
+         line.instructions
+         |> Enum.reverse
+         |> Enum.map(fn {func, arg} ->
+              func.(arg)
+            end)
+         :cecho.addch(?\n)
          end)
 
       :cecho.refresh
 
-      wait_for_input(url, page)
+      wait_for_input(url, tree, page)
 
     # {url, tree}
   end
 
-  def render({url, tree}, highlight \\ 1) do
+  def render(url, tree, page \\ 0) do
     :cecho.erase
 
-    print_title("BrowsEx = #{url}")
+    # print_title("BrowsEx = #{url}")
+    {height, width} = :cecho.getmaxyx
 
     tree
-    |> BrowsEx.Renderer.render(highlight)
+    |> BrowsEx.RendererV2.render
+    |> Enum.reverse
+    |> Enum.chunk(height, height, [])
+    |> Enum.at(page)
+    |> Enum.map(fn line ->
+         line.instructions
+         |> Enum.reverse
+         |> Enum.map(fn {func, arg} ->
+           func.(arg)
+         end)
+         :cecho.addch(?\n)
+       end)
 
     # :cecho.move(0,0)
 
     :cecho.refresh
 
-    wait_for_input({url, tree}, highlight)
+    wait_for_input(url, tree, page)
   end
 
   def print_title(string) do
@@ -83,31 +103,39 @@ defmodule BrowsEx.App do
     |> BrowsEx.Renderer.print
   end
 
-  def wait_for_input(url, page) do
+  def wait_for_input(url, tree, page) do
     char = :cecho.getch
 
-    char |> handle_char(url, page)
+    char |> handle_char(url, tree, page)
   end
 
-  def handle_char(?j, {url, tree}, highlight), do: render({url, tree}, highlight + 1)
-  def handle_char(?k, {url, tree}, highlight), do: render({url, tree}, highlight - 1)
-  def handle_char(?l, {url, tree}, highlight), do: do_click({url, tree}, highlight)
-  def handle_char(?r, {url, tree}, highlight), do: get_and_render_page(url)
-  def handle_char(?q, {url, tree}, highlight), do: nil
-  def handle_char(?p, url, page) do
-    get_tree(url, page - 1)
+  def handle_char(?j, url, tree, page) do
+    BrowsEx.Cursor.next
+    render(url, tree, page)
   end
-  def handle_char(?n, url, page) do
-    get_tree(url, page + 1)
+  def handle_char(?k, url, tree, page) do
+    BrowsEx.Cursor.prev
+    render(url, tree, page)
   end
-  def handle_char(?c, {url, tree}, highlight) do
-    :cecho.erase
-    :cecho.move(0,0)
-    wait_for_input({url, tree}, highlight)
+  def handle_char(?l, url, tree, page), do: do_click(url, tree)
+  def handle_char(?r, url, tree, page), do: get_and_render_page(url)
+  def handle_char(?q, url, tree, page), do: nil
+  def handle_char(?p, url, tree, page) do
+    render(url, tree, page - 1)
   end
-  def handle_char(_, {url, tree}, highlight), do: wait_for_input({url, tree}, highlight)
+  def handle_char(?n, url, tree, page) do
+    render(url, tree, page + 1)
+  end
+  # def handle_char(?c, {url, tree}, highlight) do
+  #   :cecho.erase
+  #   :cecho.move(0,0)
+  #   wait_for_input({url, tree}, highlight)
+  # end
+  def handle_char(_, url, tree, page), do: wait_for_input(url, tree, page)
 
-  def do_click({current_url, tree}, index) do
+  def do_click(current_url, tree) do
+    index = BrowsEx.Cursor.current |> Integer.to_string
+
     tree
     |> Floki.find("[brows_ex_index=#{index}]")
     |> List.first

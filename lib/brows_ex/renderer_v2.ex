@@ -30,11 +30,26 @@ defmodule BrowsEx.RendererV2 do
   end
   def traverse(_any, acc, _fun, _post), do: acc
 
+  def render_link(index, cursor, line) when index == cursor do
+    new_instruction(line, {&attr_on/1, 2})
+  end
+  def render_link(index, _cursor, line) do
+    new_instruction(line, {&attr_on/1, 3})
+  end
+
+  def after_link(index, cursor, line) when index == cursor do
+    new_instruction(line, {&attr_off/1, 2})
+  end
+  def after_link(index, _cursor, line) do
+    new_instruction(line, {&attr_off/1, 3})
+  end
+
   def into_lines({"h1", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{&attr_on/1, 1}]})
   end
-  def into_lines({"a", attrs, _children}, [line|rest]) do
-    line = new_instruction(line, {&attr_on/1, 2})
+  def into_lines({"a", attrs, _children}, [line|rest]=lines) do
+    line = attrs |> get_index |> render_link(BrowsEx.Cursor.current, line)
+    # line = new_instruction(line, {&attr_on/1, 2})
     [line|rest]
   end
   def into_lines({"li", _attrs, _children}, lines) do
@@ -50,8 +65,9 @@ defmodule BrowsEx.RendererV2 do
     line = new_instruction(line, {&attr_off/1, 1})
     [line|rest]
   end
-  def after_children({"a", _attrs, _children}, [line|rest]) do
-    line = new_instruction(line, {&attr_off/1, 2})
+  def after_children({"a", attrs, _children}, [line|rest]) do
+    line = attrs |> get_index |> after_link(BrowsEx.Cursor.current, line)
+    # line = new_instruction(line, {&attr_off/1, 2})
     [line|rest]
   end
   def after_children(_, lines), do: lines
@@ -84,6 +100,12 @@ defmodule BrowsEx.RendererV2 do
 
   def new_word(%Line{instructions: instructions}=line, word, width) do
     %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width}
+  end
+
+  def get_index(attributes) do
+    {_, index} = attributes |> Enum.find(&({"brows_ex_index", index} = &1))
+
+    index |> String.to_integer
   end
 
   def print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
