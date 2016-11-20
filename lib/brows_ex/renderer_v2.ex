@@ -11,65 +11,74 @@ defmodule BrowsEx.RendererV2 do
     noscript ol output p pre section table tfoot ul video tr)
 
   def render(tree) do
-    {_height, width} = :cecho.getmaxyx
-    {line, lines} = tree |> render_node(%Line{max: width}, [])
-
-    [line|lines]
+    tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2))
   end
 
-  def render_node({"h1", _attrs, children}, %Line{}=line, lines) do
-    {new_line, lines} =
-      children
-      |> render_node(%Line{instructions: [{&attr_on/1, 1}], max: line.max}, [line|lines])
+  def traverse({name, _attrs, _children}, acc, _fun, _post) when name in @no_render do
+    acc
+  end
+  def traverse({_name, _attrs, children}=node, acc, fun, post) do
+    acc = fun.(node, acc)
+    acc = traverse(children, acc, fun, post)
+    post.(node, acc)
+  end
+  def traverse([child|siblings], acc, fun, post) do
+    acc = traverse(child, acc, fun, post)
+    traverse(siblings, acc, fun, post)
+  end
+  def traverse(<<leaf::binary>>, acc, fun, post) do
+    acc = fun.(leaf, acc)
+    post.(leaf, acc)
+  end
+  def traverse(_else, acc, _fun, _post) do
+    acc
+  end
 
-    {%{new_line|instructions: [{&attr_off/1, 1}|new_line.instructions]}, lines}
+  def into_lines({"h1", _attrs, _children}, lines) do
+    # {_height, width} = :cecho.getmaxyx
+    {_height, width} = {10, 80}
+    [%Line{max: width, instructions: [{&attr_on/1, 1}]}|lines]
   end
-  def render_node({"a", attrs, children}, %Line{instructions: instructions}=line, lines) do
-    {line, lines} = 
-      children
-      |> render_node(%{line|instructions: [{&attr_on/1, 5}|instructions]}, lines)
+  def into_lines({"a", attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
+    [%{line|instructions: [{&attr_on/1, 2}|instructions]}|rest]
+  end
+  def into_lines({"li", _attrs, _children}, lines) do
+    {_height, width} = {10, 80}
+    [%Line{max: width, instructions: [{&print/1, "* "}]}|lines]
+  end
+  def into_lines({name, attrs, children}, lines) when name in @block_level do
+    # {_height, width} = :cecho.getmaxyx
+    {_height, width} = {10, 80}
+    [%Line{max: width}|lines]
+  end
+  def into_lines({name, _attrs, _children}, lines), do: lines
+  def into_lines(<<leaf::binary>>, lines), do: leaf |> String.split |> render_words(lines)
 
-    {%{line|instructions: [{&attr_off/1, 5}|line.instructions]}, lines}
+  def after_children({"h1", _attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
+    [%{line|instructions: [{&attr_off/1, 1}|instructions]}|rest]
   end
-  def render_node({"li", _attrs, children}, line, lines) do
-    ["* "|children] |> render_node(%Line{max: line.max}, [line|lines])
+  def after_children({"a", _attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
+    [%{line|instructions: [{&attr_off/1, 2}|instructions]}|rest]
   end
-  def render_node({name, _attrs, children}, line, lines) when name in @no_render, do: {line, lines}
-  def render_node({name, _attrs, children}, line, lines) when name in @block_level do
-    render_node(children, %Line{max: line.max}, [line|lines])
-  end
-  def render_node({name, _attrs, children}, line, lines) do
-    render_node(children, line, lines)
-  end
-  def render_node([child|siblings], line, lines) do
-    {line, lines} = render_node(child, line, lines)
-    render_node(siblings, line, lines)
-  end
-  def render_node([], line, lines), do: {line, lines}
-  def render_node(<<leaf::binary>>, line, lines) do
-    leaf |> String.split |> render_words(line, lines)
-  end
-  def render_node(_other, line, lines), do: {line, lines}
+  def after_children(_, lines), do: lines
 
-  def render_words([word|tail], %Line{max: max, width: width, instructions: instructions}=line, lines) do
+  def render_words([], lines), do: lines
+  def render_words(words, []) do
+    # {_height, width} = :cecho.getmaxyx
+    {_height, width} = {10, 80}
+    # {_height, width} = {9, 80}
+    render_words(words, [%Line{max: width}])
+  end
+  def render_words([word|tail], [%Line{width: width, max: max, instructions: instructions}=line|rest]=lines) do
+    # IO.inspect word
+    # IO.inspect lines
     case String.length(word) + width do
       new_width when new_width >= max ->
-        render_words([word|tail], %Line{max: max}, [line|lines])
+        render_words([word|tail], [%Line{max: max}|lines])
       new_width ->
-        render_words(tail, %{line|width: new_width + 1, instructions: [{&print/1, "#{word} "}|instructions]}, lines)
+        render_words(tail, [%{line|width: new_width + 1, instructions: [{&print/1, "#{word} "}|instructions]}|rest])
     end
-
-    # {line, lines} = add_to_line(word, line, width + String.length(word) + 1, lines)
-    # render_words(tail, line, lines)
   end
-  def render_words([], line, lines), do: {line, lines}
-
-  # def add_to_line(word, %Line{max: max}=line, new_width, lines) when new_width >= max do
-  #   add_to_line(word, %Line{max: max}, 0, [line|lines])
-  # end
-  # def add_to_line(word, %Line{instructions: instructions}=line, new_width, lines) do
-  #   {%{line|instructions: [{&print/1, "#{word} "}|instructions], width: new_width}, lines}
-  # end
 
   def print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
 
