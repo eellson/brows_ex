@@ -14,9 +14,7 @@ defmodule BrowsEx.RendererV2 do
     tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2))
   end
 
-  def traverse({name, _attrs, _children}, acc, _fun, _post) when name in @no_render do
-    acc
-  end
+  def traverse({name, _, _}, acc, _fun, _post) when name in @no_render, do: acc
   def traverse({_name, _attrs, children}=node, acc, fun, post) do
     acc = fun.(node, acc)
     acc = traverse(children, acc, fun, post)
@@ -30,54 +28,62 @@ defmodule BrowsEx.RendererV2 do
     acc = fun.(leaf, acc)
     post.(leaf, acc)
   end
-  def traverse(_else, acc, _fun, _post) do
-    acc
-  end
+  def traverse(_any, acc, _fun, _post), do: acc
 
   def into_lines({"h1", _attrs, _children}, lines) do
-    # {_height, width} = :cecho.getmaxyx
-    {_height, width} = {10, 80}
-    [%Line{max: width, instructions: [{&attr_on/1, 1}]}|lines]
+    new_line(lines, %{instructions: [{&attr_on/1, 1}]})
   end
-  def into_lines({"a", attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
-    [%{line|instructions: [{&attr_on/1, 2}|instructions]}|rest]
+  def into_lines({"a", attrs, _children}, [line|rest]) do
+    line = new_instruction(line, {&attr_on/1, 2})
+    [line|rest]
   end
   def into_lines({"li", _attrs, _children}, lines) do
-    {_height, width} = {10, 80}
-    [%Line{max: width, instructions: [{&print/1, "* "}]}|lines]
+    new_line(lines, %{instructions: [{&print/1, "* "}]})
   end
   def into_lines({name, attrs, children}, lines) when name in @block_level do
-    # {_height, width} = :cecho.getmaxyx
-    {_height, width} = {10, 80}
-    [%Line{max: width}|lines]
+    new_line(lines, %{})
   end
   def into_lines({name, _attrs, _children}, lines), do: lines
   def into_lines(<<leaf::binary>>, lines), do: leaf |> String.split |> render_words(lines)
 
-  def after_children({"h1", _attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
-    [%{line|instructions: [{&attr_off/1, 1}|instructions]}|rest]
+  def after_children({"h1", _attrs, _children}, [line|rest]) do
+    line = new_instruction(line, {&attr_off/1, 1})
+    [line|rest]
   end
-  def after_children({"a", _attrs, _children}, [%Line{instructions: instructions}=line|rest]) do
-    [%{line|instructions: [{&attr_off/1, 2}|instructions]}|rest]
+  def after_children({"a", _attrs, _children}, [line|rest]) do
+    line = new_instruction(line, {&attr_off/1, 2})
+    [line|rest]
   end
   def after_children(_, lines), do: lines
 
   def render_words([], lines), do: lines
-  def render_words(words, []) do
-    # {_height, width} = :cecho.getmaxyx
-    {_height, width} = {10, 80}
-    # {_height, width} = {9, 80}
-    render_words(words, [%Line{max: width}])
-  end
+  def render_words(words, []), do: render_words(words, new_line)
   def render_words([word|tail], [%Line{width: width, max: max, instructions: instructions}=line|rest]=lines) do
-    # IO.inspect word
-    # IO.inspect lines
     case String.length(word) + width do
       new_width when new_width >= max ->
-        render_words([word|tail], [%Line{max: max}|lines])
+        render_words([word|tail], new_line)
       new_width ->
-        render_words(tail, [%{line|width: new_width + 1, instructions: [{&print/1, "#{word} "}|instructions]}|rest])
+        line = new_word(line, word, width)
+        render_words(tail, [line|rest])
     end
+  end
+
+  def new_line(lines \\ [], attrs \\ %{})
+  def new_line([], attrs) do
+    {_height, width} = :cecho.getmaxyx
+    new_line([%Line{max: width}], attrs)
+  end
+  def new_line([%Line{max: max}|_]=lines, attrs) do
+    attrs = attrs |> Map.put(:max, max)
+    [struct(Line, attrs)|lines]
+  end
+
+  def new_instruction(%Line{instructions: instructions}=line, instruction) do
+    %{line|instructions: [instruction|instructions]}
+  end
+
+  def new_word(%Line{instructions: instructions}=line, word, width) do
+    %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width}
   end
 
   def print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
