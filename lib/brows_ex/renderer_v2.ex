@@ -14,6 +14,14 @@ defmodule BrowsEx.RendererV2 do
     tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2)) |> into_pages
   end
 
+  @doc """
+  Walks the tree (depth-first), building up an accumulator by recursively
+  applying `fun` to each node, and then applying `post` once walking back up
+  to a node.
+
+  Does not apply `fun` or `post` to `List`s of children.
+  """
+  @spec traverse(node :: tuple | list | String.t, acc :: term, fun :: fun, post :: fun) :: term
   def traverse({name, _, _}, acc, _fun, _post) when name in @no_render, do: acc
   def traverse({_name, _attrs, children}=node, acc, fun, post) do
     acc = fun.(node, acc)
@@ -30,20 +38,11 @@ defmodule BrowsEx.RendererV2 do
   end
   def traverse(_any, acc, _fun, _post), do: acc
 
-  def render_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_on/1, 2})
-  end
-  def render_link(index, _cursor, line) do
-    new_instruction(line, {&attr_on/1, 3})
-  end
-
-  def after_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_off/1, 2})
-  end
-  def after_link(index, _cursor, line) do
-    new_instruction(line, {&attr_off/1, 3})
-  end
-
+  @doc """
+  Handles nodes being passed from `traverse`, returning transformed accumulator
+  before traverse continues with children (if any).
+  """
+  @spec into_lines(node :: tuple | String.t, lines :: list) :: list
   def into_lines({"h1", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{&attr_on/1, 1}]})
   end
@@ -60,6 +59,11 @@ defmodule BrowsEx.RendererV2 do
   def into_lines({name, _attrs, _children}, lines), do: lines
   def into_lines(<<leaf::binary>>, lines), do: leaf |> String.split |> render_words(lines)
 
+  @doc """
+  Handles nodes being passed from `traverse`, returning transformed accumulator
+  after traverse has walked children (if any).
+  """
+  @spec after_children(node :: tuple | any, lines :: list) :: list
   def after_children({"h1", _attrs, _children}, [line|rest]) do
     line = new_instruction(line, {&attr_off/1, 1})
     [line|rest]
@@ -70,6 +74,35 @@ defmodule BrowsEx.RendererV2 do
   end
   def after_children(_, lines), do: lines
 
+  @doc """
+  Adds attr_on instruction for link depending on whether cursor is over it or not.
+  """
+  @spec render_link(index :: integer, cursor :: integer, line :: struct) :: struct
+  def render_link(index, cursor, line) when index == cursor do
+    new_instruction(line, {&attr_on/1, 2})
+  end
+  def render_link(index, _cursor, line) do
+    new_instruction(line, {&attr_on/1, 3})
+  end
+
+  @doc """
+  Adds attr_off instruction for link depending on whether cursor is over it or not.
+  """
+  @spec after_link(index :: integer, cursor :: integer, line :: struct) :: struct
+  def after_link(index, cursor, line) when index == cursor do
+    new_instruction(line, {&attr_off/1, 2})
+  end
+  def after_link(index, _cursor, line) do
+    new_instruction(line, {&attr_off/1, 3})
+  end
+
+  @doc """
+  Splits string into List of words, inserting into `%Line{}`s.
+
+  Will insert into first Line in list if it has room, else will create a new
+  Line to add to.
+  """
+  @spec render_words(words :: list, lines :: list) :: list
   def render_words([], lines), do: lines
   def render_words(words, []), do: render_words(words, new_line)
   def render_words([word|tail], [%Line{width: width, max: max, instructions: instructions}=line|rest]=lines) do
@@ -82,8 +115,15 @@ defmodule BrowsEx.RendererV2 do
     end
   end
 
+  @doc """
+  Appends a new `%Line{}` to `lines`.
+
+  If passed in a map of attrs, these will populate the created `%Line`.
+  """
+  @spec new_line(lines :: list, attrs :: map) :: list
   def new_line(lines \\ [], attrs \\ %{})
   def new_line([], attrs) do
+    # {height, width} = {10, 80}
     {_height, width} = :cecho.getmaxyx
     new_line([%Line{max: width}], attrs)
   end
@@ -92,27 +132,29 @@ defmodule BrowsEx.RendererV2 do
     [struct(Line, attrs)|lines]
   end
 
+  @doc """
+  Appends a new instruction to the given `%Line{}`.
+  """
+  @spec new_instruction(line :: struct, instruction :: tuple) :: struct
   def new_instruction(%Line{instructions: instructions}=line, instruction) do
     %{line|instructions: [instruction|instructions]}
   end
 
+  @doc """
+  Appends a new print instruction to the given `%Line{}`, and updates line's
+  `width` with new value.
+  """
+  @spec new_word(line :: struct, word :: String.t, width :: integer) :: struct
   def new_word(%Line{instructions: instructions}=line, word, width) do
     %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width}
   end
 
-  def get_index(attributes) do
-    {_, index} = attributes |> Enum.find(&({"brows_ex_index", index} = &1))
-
-    index |> String.to_integer
-  end
-
-  def print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
-
-  def attr_on(id), do: :cecho.attron(id <<< 8)
-
-  def attr_off(id), do: :cecho.attroff(id <<< 8)
-
+  @doc """
+  Transforms list of lines into list of lists of lines, for pagination.
+  """
+  @spec into_pages(lines :: list) :: list
   def into_pages(lines) do
+    # {height, width} = {10, 80}
     {height, _width} = :cecho.getmaxyx
 
     lines
@@ -120,4 +162,16 @@ defmodule BrowsEx.RendererV2 do
     |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
     |> Enum.chunk(height, height, [])
   end
+
+  defp get_index(attributes) do
+    {_, index} = attributes |> Enum.find(&({"brows_ex_index", index} = &1))
+
+    index |> String.to_integer
+  end
+
+  defp print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
+
+  defp attr_on(id), do: :cecho.attron(id <<< 8)
+
+  defp attr_off(id), do: :cecho.attroff(id <<< 8)
 end
