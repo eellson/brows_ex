@@ -42,8 +42,6 @@ defmodule BrowsEx.App do
   def get_tree(url, page \\ 0) do
     :cecho.erase
 
-    {height, width} = :cecho.getmaxyx
-
     tree =
       url
       |> BrowsEx.Requester.request
@@ -53,13 +51,9 @@ defmodule BrowsEx.App do
 
     tree
     |> BrowsEx.RendererV2.render
-    # |> IO.inspect
-    |> Enum.reverse
-    |> Enum.chunk(height, height, [])
     |> Enum.at(page)
     |> Enum.map(fn line ->
          line.instructions
-         |> Enum.reverse
          |> Enum.map(fn {func, arg} ->
               func.(arg)
             end)
@@ -69,8 +63,6 @@ defmodule BrowsEx.App do
       :cecho.refresh
 
       wait_for_input(url, tree, page)
-
-    # {url, tree}
   end
 
   def render(url, tree, page \\ 0) do
@@ -81,19 +73,14 @@ defmodule BrowsEx.App do
 
     tree
     |> BrowsEx.RendererV2.render
-    |> Enum.reverse
-    |> Enum.chunk(height, height, [])
     |> Enum.at(page)
     |> Enum.map(fn line ->
          line.instructions
-         |> Enum.reverse
          |> Enum.map(fn {func, arg} ->
            func.(arg)
          end)
          :cecho.addch(?\n)
        end)
-
-    # :cecho.move(0,0)
 
     :cecho.refresh
 
@@ -128,11 +115,6 @@ defmodule BrowsEx.App do
   def handle_char(?n, url, tree, page) do
     render(url, tree, page + 1)
   end
-  # def handle_char(?c, {url, tree}, highlight) do
-  #   :cecho.erase
-  #   :cecho.move(0,0)
-  #   wait_for_input({url, tree}, highlight)
-  # end
   def handle_char(_, url, tree, page), do: wait_for_input(url, tree, page)
 
   def do_click(current_url, tree) do

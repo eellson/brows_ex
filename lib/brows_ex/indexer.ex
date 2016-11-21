@@ -1,6 +1,6 @@
 defmodule BrowsEx.Indexer do
   @doc """
-  Adds an `{"brows_ex_index", "i"}` item to attributes for nodex matching selector.
+  Adds an `{"brows_ex_index", "i"}` item to attributes for nodes matching selector.
   """
   @spec index(tuple, String.t) :: tuple
   def index(tree, selector) do

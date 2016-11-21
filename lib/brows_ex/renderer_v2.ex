@@ -11,7 +11,7 @@ defmodule BrowsEx.RendererV2 do
     noscript ol output p pre section table tfoot ul video tr)
 
   def render(tree) do
-    tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2))
+    tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2)) |> into_pages
   end
 
   def traverse({name, _, _}, acc, _fun, _post) when name in @no_render, do: acc
@@ -49,7 +49,6 @@ defmodule BrowsEx.RendererV2 do
   end
   def into_lines({"a", attrs, _children}, [line|rest]=lines) do
     line = attrs |> get_index |> render_link(BrowsEx.Cursor.current, line)
-    # line = new_instruction(line, {&attr_on/1, 2})
     [line|rest]
   end
   def into_lines({"li", _attrs, _children}, lines) do
@@ -67,7 +66,6 @@ defmodule BrowsEx.RendererV2 do
   end
   def after_children({"a", attrs, _children}, [line|rest]) do
     line = attrs |> get_index |> after_link(BrowsEx.Cursor.current, line)
-    # line = new_instruction(line, {&attr_off/1, 2})
     [line|rest]
   end
   def after_children(_, lines), do: lines
@@ -113,4 +111,13 @@ defmodule BrowsEx.RendererV2 do
   def attr_on(id), do: :cecho.attron(id <<< 8)
 
   def attr_off(id), do: :cecho.attroff(id <<< 8)
+
+  def into_pages(lines) do
+    {height, _width} = :cecho.getmaxyx
+
+    lines
+    |> Enum.reverse
+    |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
+    |> Enum.chunk(height, height, [])
+  end
 end
