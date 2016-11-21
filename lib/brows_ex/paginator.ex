@@ -103,9 +103,9 @@ defmodule BrowsEx.Paginator do
   def render_words([word|tail], [%Line{width: width, max: max, instructions: instructions}=line|rest]=lines) do
     case String.length(word) + width do
       new_width when new_width >= max ->
-        render_words([word|tail], new_line)
+        render_words([word|tail], new_line(lines))
       new_width ->
-        line = new_word(line, word, width)
+        line = new_word(line, word, new_width)
         render_words(tail, [line|rest])
     end
   end
@@ -120,7 +120,8 @@ defmodule BrowsEx.Paginator do
   def new_line([], attrs) do
     # {height, width} = {10, 80}
     {_height, width} = :cecho.getmaxyx
-    new_line([%Line{max: width}], attrs)
+    [%{struct(Line, attrs)|max: width}]
+    # new_line([%Line{max: width}], attrs)
   end
   def new_line([%Line{max: max}|_]=lines, attrs) do
     attrs = attrs |> Map.put(:max, max)
@@ -141,7 +142,7 @@ defmodule BrowsEx.Paginator do
   """
   @spec new_word(line :: struct, word :: String.t, width :: integer) :: struct
   def new_word(%Line{instructions: instructions}=line, word, width) do
-    %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width}
+    %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width + 1}
   end
 
   @doc """
