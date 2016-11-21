@@ -52,7 +52,7 @@ defmodule BrowsEx.App do
     # print_title("BrowsEx = #{url}")
 
     tree
-    |> BrowsEx.RendererV2.render
+    |> BrowsEx.Paginator.paginate
     |> Enum.at(page)
     |> Enum.map(fn line ->
          line.instructions

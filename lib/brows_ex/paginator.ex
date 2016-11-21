@@ -2,7 +2,7 @@ defmodule Line do
   defstruct [width: 0, max: 0, instructions: []]
 end
 
-defmodule BrowsEx.RendererV2 do
+defmodule BrowsEx.Paginator do
   use Bitwise
 
   @no_render ~w(head script)
@@ -10,7 +10,7 @@ defmodule BrowsEx.RendererV2 do
     figcaption figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr li main nav
     noscript ol output p pre section table tfoot ul video tr)
 
-  def render(tree) do
+  def paginate(tree) do
     tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2)) |> into_pages
   end
 
@@ -92,9 +92,7 @@ defmodule BrowsEx.RendererV2 do
   def after_link(index, cursor, line) when index == cursor do
     new_instruction(line, {&attr_off/1, 2})
   end
-  def after_link(index, _cursor, line) do
-    new_instruction(line, {&attr_off/1, 3})
-  end
+  def after_link(index, _cursor, line), do: new_instruction(line, {&attr_off/1, 3})
 
   @doc """
   Splits string into List of words, inserting into `%Line{}`s.
