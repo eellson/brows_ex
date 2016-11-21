@@ -6,9 +6,7 @@ defmodule BrowsEx.App do
     term_ncurses
   end
 
-  def init_cursor do
-    BrowsEx.Cursor.new
-  end
+  def init_cursor, do: BrowsEx.Cursor.new
 
   def init_ncurses do
     :application.start(:cecho)
@@ -22,7 +20,6 @@ defmodule BrowsEx.App do
     :cecho.init_pair(7, 7, 0) # white
     :cecho.init_pair(8, 8, 0) # grey
     :cecho.cbreak
-    # :cecho.scrollok(0, true)
   end
 
   def term_ncurses do
@@ -33,43 +30,26 @@ defmodule BrowsEx.App do
   def get_and_render_page(url, page \\ 0) do
     BrowsEx.Cursor.reset
 
-    url
-    |> get_tree
-    # |> IO.inspect
-    # |> render(highlight)
+    tree = url |> get_tree
+
+    render(url, tree)
+
+    wait_for_input(url, tree, page)
   end
 
   def get_tree(url, page \\ 0) do
-    :cecho.erase
-
     tree =
       url
       |> BrowsEx.Requester.request
       # |> get_h1s
       |> BrowsEx.Parser.parse
       |> BrowsEx.Indexer.index("a")
-
-    tree
-    |> BrowsEx.RendererV2.render
-    |> Enum.at(page)
-    |> Enum.map(fn line ->
-         line.instructions
-         |> Enum.map(fn {func, arg} ->
-              func.(arg)
-            end)
-         :cecho.addch(?\n)
-         end)
-
-      :cecho.refresh
-
-      wait_for_input(url, tree, page)
   end
 
   def render(url, tree, page \\ 0) do
     :cecho.erase
 
     # print_title("BrowsEx = #{url}")
-    {height, width} = :cecho.getmaxyx
 
     tree
     |> BrowsEx.RendererV2.render
@@ -83,8 +63,6 @@ defmodule BrowsEx.App do
        end)
 
     :cecho.refresh
-
-    wait_for_input(url, tree, page)
   end
 
   def print_title(string) do
@@ -101,19 +79,23 @@ defmodule BrowsEx.App do
   def handle_char(?j, url, tree, page) do
     BrowsEx.Cursor.next
     render(url, tree, page)
+    wait_for_input(url, tree, page)
   end
   def handle_char(?k, url, tree, page) do
     BrowsEx.Cursor.prev
     render(url, tree, page)
+    wait_for_input(url, tree, page)
   end
   def handle_char(?l, url, tree, page), do: do_click(url, tree)
   def handle_char(?r, url, tree, page), do: get_and_render_page(url)
   def handle_char(?q, url, tree, page), do: nil
   def handle_char(?p, url, tree, page) do
     render(url, tree, page - 1)
+    wait_for_input(url, tree, page - 1)
   end
   def handle_char(?n, url, tree, page) do
     render(url, tree, page + 1)
+    wait_for_input(url, tree, page + 1)
   end
   def handle_char(_, url, tree, page), do: wait_for_input(url, tree, page)
 
