@@ -31,6 +31,8 @@ defmodule BrowsEx.App do
   end
 
   def get_and_render_page(url, page \\ 0) do
+    BrowsEx.Cursor.reset
+
     url
     |> get_tree
     # |> IO.inspect
