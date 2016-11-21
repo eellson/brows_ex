@@ -1,68 +1,26 @@
 defmodule BrowsEx.App do
   def run(url) do
     init_cursor
-    init_ncurses
+    init_renderer
     get_and_render_page(url)
-    term_ncurses
-  end
-
-  def init_cursor, do: BrowsEx.Cursor.new
-
-  def init_ncurses do
-    :application.start(:cecho)
-    :cecho.start_color
-    :cecho.init_pair(1, 1, 0) # red
-    :cecho.init_pair(2, 2, 0) # green
-    :cecho.init_pair(3, 3, 0) # yellow
-    :cecho.init_pair(4, 4, 0) # blue
-    :cecho.init_pair(5, 5, 0) # purple
-    :cecho.init_pair(6, 6, 0) # cyan
-    :cecho.init_pair(7, 7, 0) # white
-    :cecho.init_pair(8, 8, 0) # grey
-    :cecho.cbreak
-  end
-
-  def term_ncurses do
-    :application.stop(:cecho)
-    System.halt
+    term_renderer
   end
 
   def get_and_render_page(url, page \\ 0) do
-    BrowsEx.Cursor.reset
+    reset_cursor
 
     tree = url |> get_tree
-
     render(url, tree)
 
     wait_for_input(url, tree, page)
   end
 
   def get_tree(url, page \\ 0) do
-    tree =
-      url
-      |> BrowsEx.Requester.request
-      # |> get_h1s
-      |> BrowsEx.Parser.parse
-      |> BrowsEx.Indexer.index("a")
-  end
-
-  def render(url, tree, page \\ 0) do
-    :cecho.erase
-
-    # print_title("BrowsEx = #{url}")
-
-    tree
-    |> BrowsEx.Paginator.paginate
-    |> Enum.at(page)
-    |> Enum.map(fn line ->
-         line.instructions
-         |> Enum.map(fn {func, arg} ->
-           func.(arg)
-         end)
-         :cecho.addch(?\n)
-       end)
-
-    :cecho.refresh
+    url
+    |> BrowsEx.Requester.request
+    # |> get_h1s
+    |> BrowsEx.Parser.parse
+    |> BrowsEx.Indexer.index("a")
   end
 
   def print_title(string) do
@@ -77,12 +35,12 @@ defmodule BrowsEx.App do
   end
 
   def handle_char(?j, url, tree, page) do
-    BrowsEx.Cursor.next
+    increment_cursor
     render(url, tree, page)
     wait_for_input(url, tree, page)
   end
   def handle_char(?k, url, tree, page) do
-    BrowsEx.Cursor.prev
+    decrement_cursor
     render(url, tree, page)
     wait_for_input(url, tree, page)
   end
@@ -110,6 +68,31 @@ defmodule BrowsEx.App do
     |> BrowsEx.Requester.transform_url(current_url)
     |> get_and_render_page
   end
+
+  def get_h1s(_) do
+    # 1..1
+    1..200
+    |> Enum.map(fn i -> "<h1>#{i}</h1><p>Oh hi <em>m8</em>.</p><script>y not</script><!-- wtf -->" end)
+    |> Enum.join
+  end
+
+  defp init_cursor, do: BrowsEx.Cursor.new
+
+  defp reset_cursor, do: BrowsEx.Cursor.reset
+
+  defp increment_cursor, do: BrowsEx.Cursor.next
+
+  defp decrement_cursor, do: BrowsEx.Cursor.prev
+
+  defp init_renderer, do: BrowsEx.Renderer.init
+
+  defp term_renderer, do: BrowsEx.Renderer.term
+
+  defp render(url, tree, page \\ 0), do: BrowsEx.Renderer.render(url, tree, page)
 end
 
+# BrowsEx.App.run("https://news.ycombinator.com/")
 BrowsEx.App.run("https://en.wikipedia.org/wiki/Main_Page")
+# BrowsEx.App.run("https://en.m.wikipedia.org/wiki/Big_Bay_Boom")
+# BrowsEx.App.run("https://notes.eellson.com")
+# BrowsEx.App.run("https://www.theguardian.com/uk")

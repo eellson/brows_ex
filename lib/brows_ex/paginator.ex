@@ -1,8 +1,5 @@
-defmodule Line do
-  defstruct [width: 0, max: 0, instructions: []]
-end
-
 defmodule BrowsEx.Paginator do
+  alias BrowsEx.Line
   use Bitwise
 
   @no_render ~w(head script)
