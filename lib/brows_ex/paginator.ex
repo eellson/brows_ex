@@ -154,10 +154,15 @@ defmodule BrowsEx.Paginator do
     {height, _width} = :cecho.getmaxyx
 
     lines
-    |> Enum.reverse
+    |> Enum.reduce([], &dedup_empty_lines(&1, &2))
     |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
     |> Enum.chunk(height, height, [])
   end
+
+  defp dedup_empty_lines(%Line{width: 0}, []), do: []
+  defp dedup_empty_lines(line, []), do: [line]
+  defp dedup_empty_lines(%Line{width: 0}, [%Line{width: 0}|_]=acc), do: acc
+  defp dedup_empty_lines(line, acc), do: [line|acc]
 
   defp get_index(attributes) do
     {_, index} = attributes |> Enum.find(&({"brows_ex_index", index} = &1))
