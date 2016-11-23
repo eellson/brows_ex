@@ -92,7 +92,7 @@ defmodule BrowsEx.App do
 end
 
 # BrowsEx.App.run("https://news.ycombinator.com/")
-BrowsEx.App.run("https://en.wikipedia.org/wiki/Main_Page")
+# BrowsEx.App.run("https://en.wikipedia.org/wiki/Main_Page")
 # BrowsEx.App.run("https://en.m.wikipedia.org/wiki/Big_Bay_Boom")
 # BrowsEx.App.run("https://notes.eellson.com")
 # BrowsEx.App.run("https://www.theguardian.com/uk")
