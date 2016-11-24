@@ -76,7 +76,7 @@ defmodule BrowsEx.Paginator do
   """
   @spec render_link(index :: integer, cursor :: integer, line :: struct) :: struct
   def render_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_on/1, 2})
+    new_instruction(line, {&attr_on/1, 5})
   end
   def render_link(index, _cursor, line) do
     new_instruction(line, {&attr_on/1, 3})
@@ -87,7 +87,7 @@ defmodule BrowsEx.Paginator do
   """
   @spec after_link(index :: integer, cursor :: integer, line :: struct) :: struct
   def after_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_off/1, 2})
+    new_instruction(line, {&attr_off/1, 5})
   end
   def after_link(index, _cursor, line), do: new_instruction(line, {&attr_off/1, 3})
 
