@@ -100,7 +100,7 @@ defmodule BrowsEx.Paginator do
   @spec render_words(words :: list, lines :: list) :: list
   def render_words([], lines), do: lines
   def render_words(words, []), do: render_words(words, new_line)
-  def render_words([word|tail], [%Line{width: width, max: max, instructions: instructions}=line|rest]=lines) do
+  def render_words([word|tail], [%Line{width: width, max: max}=line|rest]=lines) do
     case String.length(word) + width do
       new_width when new_width >= max ->
         render_words([word|tail], new_line(lines))
