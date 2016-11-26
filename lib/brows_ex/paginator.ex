@@ -78,9 +78,7 @@ defmodule BrowsEx.Paginator do
   def render_link(index, cursor, line) when index == cursor do
     new_instruction(line, {&attr_on/1, 5})
   end
-  def render_link(index, _cursor, line) do
-    new_instruction(line, {&attr_on/1, 3})
-  end
+  def render_link(index, _cursor, line), do: new_instruction(line, {&attr_on/1, 3})
 
   @doc """
   Adds attr_off instruction for link depending on whether cursor is over it or not.
