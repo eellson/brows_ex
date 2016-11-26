@@ -114,16 +114,19 @@ defmodule BrowsEx.Paginator do
   If passed in a map of attrs, these will populate the created `%Line`.
   """
   @spec new_line(lines :: list, attrs :: map) :: list
-  def new_line(lines \\ [], attrs \\ %{})
+  def new_line(pages \\ [], attrs \\ %{})
   def new_line([], attrs) do
     # {height, width} = {10, 80}
-    {_height, width} = :cecho.getmaxyx
-    [%{struct(Line, attrs)|max: width}]
+    # {_height, width} = :cecho.getmaxyx
+    # [%{struct(Line, attrs)|max: width}]
     # new_line([%Line{max: width}], attrs)
+    {height, width} = :cecho.getmaxyx
+    lines = [%{struct(Line, attrs)|max: width}]
+    [%Page{height: 1, max: height, lines: lines}]
   end
-  def new_line([%Line{max: max}|_]=lines, attrs) do
+  def new_line([%Page{lines: [%Line{max: max}|_]=lines, height: height}=page|rest], attrs) do
     attrs = attrs |> Map.put(:max, max)
-    [struct(Line, attrs)|lines]
+    [%{page|lines: [struct(Line, attrs)|lines], height: height + 1}|rest]
   end
 
   @doc """
