@@ -1,5 +1,5 @@
 defmodule BrowsEx.App do
-  alias BrowsEx.{Page, Line}
+  alias BrowsEx.{Page, Line, Paginator}
 
   def run(url) do
     init_cursor
@@ -9,57 +9,60 @@ defmodule BrowsEx.App do
   end
 
   def get_and_render_page(url) do
+    pages = url |> get_tree |> Paginator.paginate
+
     cursor = reset_cursor
-    tree = get_tree(url)
-    page = get_page(tree, cursor)
+    page = get_page(pages, cursor)
 
     render(url, page, cursor)
 
-    wait_for_input(url, tree, page)
+    wait_for_input(url, pages, page)
   end
 
   def get_tree(url), do: url |> BrowsEx.Requester.request |> BrowsEx.Parser.parse
 
-  def get_page(tree, {page, _link}) do
-    tree
-    |> BrowsEx.Paginator.paginate
-    |> Enum.find(fn %BrowsEx.Page{index: index} -> index == page end)
+  def get_page(pages, {page, _link}) do
+    Enum.find(pages, fn %BrowsEx.Page{index: index} -> index == page end)
   end
 
-  def wait_for_input(url, tree, page) do
+  def wait_for_input(url, pages, page) do
     char = :cecho.getch
 
-    char |> handle_char(url, tree, page)
+    handle_char(char, url, pages, page)
   end
 
-  def handle_char(?j, url, tree, page) do
+  def handle_char(?j, url, pages, page) do
     cursor = next_link(page)
-    page = get_page(tree, cursor)
+    page = get_page(pages, cursor)
+
     render(url, page, cursor)
-    wait_for_input(url, tree, page)
+    wait_for_input(url, pages, page)
   end
-  def handle_char(?k, url, tree, page) do
+  def handle_char(?k, url, pages, page) do
     cursor = prev_link
-    page = get_page(tree, cursor)
+    page = get_page(pages, cursor)
+
     render(url, page, cursor)
-    wait_for_input(url, tree, page)
+    wait_for_input(url, pages, page)
   end
-  def handle_char(?l, url, tree, page), do: do_click(url, page)
-  def handle_char(?r, url, tree, page), do: get_and_render_page(url)
-  def handle_char(?q, url, tree, page), do: nil
-  def handle_char(?p, url, tree, page) do
+  def handle_char(?l, url, pages, page), do: do_click(url, page)
+  def handle_char(?r, url, pages, page), do: get_and_render_page(url)
+  def handle_char(?q, url, pages, page), do: nil
+  def handle_char(?p, url, pages, page) do
     cursor = prev_page
-    page = get_page(tree, cursor)
+    page = get_page(pages, cursor)
+
     render(url, page, cursor)
-    wait_for_input(url, tree, page)
+    wait_for_input(url, pages, page)
   end
-  def handle_char(?n, url, tree, page) do
+  def handle_char(?n, url, pages, page) do
     cursor = next_page
-    page = get_page(tree, cursor)
+    page = get_page(pages, cursor)
+
     render(url, page, cursor)
-    wait_for_input(url, tree, page)
+    wait_for_input(url, pages, page)
   end
-  def handle_char(_, url, tree, page), do: wait_for_input(url, tree, page)
+  def handle_char(_, url, pages, page), do: wait_for_input(url, pages, page)
 
   def do_click(current_url, %Page{lines: lines}) do
     {_current_page, link} = BrowsEx.Cursor.current
