@@ -1,5 +1,5 @@
 defmodule BrowsEx.App do
-  alias BrowsEx.{Page, Line, Paginator}
+  alias BrowsEx.{Page, Line, Paginator, Requester, Parser, Cursor, Renderer}
 
   def run(url) do
     init_cursor
@@ -10,19 +10,18 @@ defmodule BrowsEx.App do
 
   def get_and_render_page(url) do
     pages = url |> get_tree |> Paginator.paginate
-
-    cursor = reset_cursor
-    page = get_page(pages, cursor)
+    {cursor, page} = reset_cursor |> get_current(pages)
 
     render(url, page, cursor)
-
     wait_for_input(url, pages, page)
   end
 
-  def get_tree(url), do: url |> BrowsEx.Requester.request |> BrowsEx.Parser.parse
+  def get_tree(url), do: url |> Requester.request |> Parser.parse
 
-  def get_page(pages, {page, _link}) do
-    Enum.find(pages, fn %BrowsEx.Page{index: index} -> index == page end)
+  def get_current({page_index, _link}=cursor, pages) do
+    page = Enum.find(pages, fn %Page{index: index} -> index == page_index end)
+
+    {cursor, page}
   end
 
   def wait_for_input(url, pages, page) do
@@ -32,15 +31,13 @@ defmodule BrowsEx.App do
   end
 
   def handle_char(?j, url, pages, page) do
-    cursor = next_link(page)
-    page = get_page(pages, cursor)
+    {cursor, page} = next_link(page) |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?k, url, pages, page) do
-    cursor = prev_link
-    page = get_page(pages, cursor)
+    {cursor, page} = prev_link |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
@@ -49,15 +46,13 @@ defmodule BrowsEx.App do
   def handle_char(?r, url, pages, page), do: get_and_render_page(url)
   def handle_char(?q, url, pages, page), do: nil
   def handle_char(?p, url, pages, page) do
-    cursor = prev_page
-    page = get_page(pages, cursor)
+    {cursor, page} = prev_page |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?n, url, pages, page) do
-    cursor = next_page
-    page = get_page(pages, cursor)
+    {cursor, page} = next_page |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
@@ -65,7 +60,7 @@ defmodule BrowsEx.App do
   def handle_char(_, url, pages, page), do: wait_for_input(url, pages, page)
 
   def do_click(current_url, %Page{lines: lines}) do
-    {_current_page, link} = BrowsEx.Cursor.current
+    {_current_page, link} = Cursor.current
     target = lines |> Enum.find_value(fn %Line{instructions: instructions} ->
       Enum.find_value(instructions, fn
         {:start_link, ^link, target} -> target
@@ -75,7 +70,7 @@ defmodule BrowsEx.App do
 
 
     target
-    |> BrowsEx.Requester.transform_url(current_url)
+    |> Requester.transform_url(current_url)
     |> get_and_render_page
   end
 
@@ -86,23 +81,23 @@ defmodule BrowsEx.App do
     |> Enum.join
   end
 
-  defp init_cursor, do: BrowsEx.Cursor.new
+  defp init_cursor, do: Cursor.new
 
-  defp reset_cursor, do: BrowsEx.Cursor.reset
+  defp reset_cursor, do: Cursor.reset
 
-  defp next_link(page), do: BrowsEx.Cursor.next(page)
+  defp next_link(page), do: Cursor.next(page)
 
-  defp prev_link, do: BrowsEx.Cursor.prev
+  defp prev_link, do: Cursor.prev
 
-  defp next_page, do: BrowsEx.Cursor.next_page
+  defp next_page, do: Cursor.next_page
 
-  defp prev_page, do: BrowsEx.Cursor.prev_page
+  defp prev_page, do: Cursor.prev_page
 
-  defp init_renderer, do: BrowsEx.Renderer.init
+  defp init_renderer, do: Renderer.init
 
-  defp term_renderer, do: BrowsEx.Renderer.term
+  defp term_renderer, do: Renderer.term
 
-  defp render(url, page, cursor), do: BrowsEx.Renderer.render(url, page, cursor)
+  defp render(url, page, cursor), do: Renderer.render(url, page, cursor)
 end
 
 # BrowsEx.App.run("https://news.ycombinator.com/")
