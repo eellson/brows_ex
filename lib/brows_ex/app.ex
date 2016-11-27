@@ -25,9 +25,7 @@ defmodule BrowsEx.App do
   end
 
   def wait_for_input(url, pages, page) do
-    char = :cecho.getch
-
-    handle_char(char, url, pages, page)
+    :cecho.getch |> handle_char(url, pages, page)
   end
 
   def handle_char(?j, url, pages, page) do
@@ -42,21 +40,21 @@ defmodule BrowsEx.App do
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
-  def handle_char(?l, url, pages, page), do: do_click(url, page)
-  def handle_char(?r, url, pages, page), do: get_and_render_page(url)
-  def handle_char(?q, url, pages, page), do: nil
-  def handle_char(?p, url, pages, page) do
-    {cursor, page} = prev_page |> get_current(pages)
-
-    render(url, page, cursor)
-    wait_for_input(url, pages, page)
-  end
   def handle_char(?n, url, pages, page) do
     {cursor, page} = next_page |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
+  def handle_char(?p, url, pages, page) do
+    {cursor, page} = prev_page |> get_current(pages)
+
+    render(url, page, cursor)
+    wait_for_input(url, pages, page)
+  end
+  def handle_char(?l, url, pages, page), do: do_click(url, page)
+  def handle_char(?r, url, pages, page), do: get_and_render_page(url)
+  def handle_char(?q, url, pages, page), do: nil
   def handle_char(_, url, pages, page), do: wait_for_input(url, pages, page)
 
   def do_click(current_url, %Page{lines: lines}) do
