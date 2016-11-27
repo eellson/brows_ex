@@ -1,5 +1,5 @@
 defmodule BrowsEx.Paginator do
-  alias BrowsEx.Line
+  alias BrowsEx.{Line, Page}
   use Bitwise
 
   @no_render ~w(head script)
@@ -36,19 +36,22 @@ defmodule BrowsEx.Paginator do
   def traverse(_any, acc, _fun, _post), do: acc
 
   @doc """
-  Handles nodes being passed from `traverse`, returning transformed accumulator
-  before traverse continues with children (if any).
+  Handles nodes being passed from `traverse`, returning transformed accumulator.
+
+  Called before `traverse/4` continues with children (if any).
   """
   @spec into_lines(node :: tuple | String.t, lines :: list) :: list
   def into_lines({"h1", _attrs, _children}, lines) do
-    new_line(lines, %{instructions: [{&attr_on/1, 1}]})
+    new_line(lines, %{instructions: [{:start_h1}]})
   end
-  def into_lines({"a", attrs, _children}, [line|rest]=lines) do
-    line = attrs |> get_index |> render_link(BrowsEx.Cursor.current, line)
+  def into_lines({"a", attrs, _children}=node, [line|rest]=lines) do
+    target = node |> Floki.attribute("href") |> List.first
+
+    line = new_instruction(line, {:start_link, :id, target})
     [line|rest]
   end
   def into_lines({"li", _attrs, _children}, lines) do
-    new_line(lines, %{instructions: [{&print/1, "* "}]})
+    new_line(lines, %{instructions: [{:print, "* "}]})
   end
   def into_lines({name, attrs, children}, lines) when name in @block_level do
     new_line(lines, %{})
@@ -57,16 +60,17 @@ defmodule BrowsEx.Paginator do
   def into_lines(<<leaf::binary>>, lines), do: leaf |> String.split |> render_words(lines)
 
   @doc """
-  Handles nodes being passed from `traverse`, returning transformed accumulator
-  after traverse has walked children (if any).
+  Handles nodes being passed from `traverse`, returning transformed accumulator.
+
+  Called after traverse has walked children (if any).
   """
   @spec after_children(node :: tuple | any, lines :: list) :: list
   def after_children({"h1", _attrs, _children}, [line|rest]) do
-    line = new_instruction(line, {&attr_off/1, 1})
+    line = new_instruction(line, {:end_h1})
     [line|rest]
   end
   def after_children({"a", attrs, _children}, [line|rest]) do
-    line = attrs |> get_index |> after_link(BrowsEx.Cursor.current, line)
+    line = new_instruction(line, {:end_link})
     [line|rest]
   end
   def after_children(_, lines), do: lines
@@ -76,18 +80,18 @@ defmodule BrowsEx.Paginator do
   """
   @spec render_link(index :: integer, cursor :: integer, line :: struct) :: struct
   def render_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_on/1, 5})
+    new_instruction(line, {:start_link})
   end
-  def render_link(index, _cursor, line), do: new_instruction(line, {&attr_on/1, 3})
+  def render_link(index, _cursor, line), do: new_instruction(line, {:start_link})
 
   @doc """
   Adds attr_off instruction for link depending on whether cursor is over it or not.
   """
   @spec after_link(index :: integer, cursor :: integer, line :: struct) :: struct
   def after_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {&attr_off/1, 5})
+    new_instruction(line, {:end_link})
   end
-  def after_link(index, _cursor, line), do: new_instruction(line, {&attr_off/1, 3})
+  def after_link(index, _cursor, line), do: new_instruction(line, {:end_link})
 
   @doc """
   Splits string into List of words, inserting into `%Line{}`s.
@@ -116,10 +120,8 @@ defmodule BrowsEx.Paginator do
   @spec new_line(lines :: list, attrs :: map) :: list
   def new_line(lines \\ [], attrs \\ %{})
   def new_line([], attrs) do
-    # {height, width} = {10, 80}
     {_height, width} = :cecho.getmaxyx
     [%{struct(Line, attrs)|max: width}]
-    # new_line([%Line{max: width}], attrs)
   end
   def new_line([%Line{max: max}|_]=lines, attrs) do
     attrs = attrs |> Map.put(:max, max)
@@ -140,37 +142,33 @@ defmodule BrowsEx.Paginator do
   """
   @spec new_word(line :: struct, word :: String.t, width :: integer) :: struct
   def new_word(%Line{instructions: instructions}=line, word, width) do
-    %{line|instructions: [{&print/1, "#{word} "}|instructions], width: width + 1}
+    %{line|instructions: [{:print, "#{word} "}|instructions], width: width + 1}
   end
 
   @doc """
-  Transforms list of lines into list of lists of lines, for pagination.
+  Transforms list of lines into list of pages.
+
+  Once we have a list of `%Page{}` structs we index the links for each page, and
+  index the pages themselves.
   """
   @spec into_pages(lines :: list) :: list
   def into_pages(lines) do
-    # {height, width} = {10, 80}
     {height, _width} = :cecho.getmaxyx
 
-    lines
-    |> Enum.reduce([], &dedup_empty_lines(&1, &2))
-    |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
-    |> Enum.chunk(height, height, [])
+    {pages, _count} =
+      lines
+      |> Enum.reduce([], &dedup_empty_lines(&1, &2))
+      |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
+      |> Enum.chunk(height, height, [])
+      |> Enum.map(fn chunk -> %Page{lines: chunk} end)
+      |> Enum.map(&Page.index_links/1)
+      |> Enum.map_reduce(0, fn(page, count) -> {%{page|index: count}, count + 1} end)
+
+    pages
   end
 
   defp dedup_empty_lines(%Line{width: 0}, []), do: []
   defp dedup_empty_lines(line, []), do: [line]
   defp dedup_empty_lines(%Line{width: 0}, [%Line{width: 0}|_]=acc), do: acc
   defp dedup_empty_lines(line, acc), do: [line|acc]
-
-  defp get_index(attributes) do
-    {_, index} = attributes |> Enum.find(&({"brows_ex_index", index} = &1))
-
-    index |> String.to_integer
-  end
-
-  defp print(str), do: str |> String.to_char_list |> Enum.each(fn ch -> :cecho.addch(ch) end)
-
-  defp attr_on(id), do: :cecho.attron(id <<< 8)
-
-  defp attr_off(id), do: :cecho.attroff(id <<< 8)
 end
