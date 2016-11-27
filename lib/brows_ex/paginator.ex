@@ -1,5 +1,5 @@
 defmodule BrowsEx.Paginator do
-  alias BrowsEx.Line
+  alias BrowsEx.{Line, Page}
   use Bitwise
 
   @no_render ~w(head script)
@@ -8,7 +8,8 @@ defmodule BrowsEx.Paginator do
     noscript ol output p pre section table tfoot ul video tr)
 
   def paginate(tree) do
-    tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2)) |> into_pages
+    tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2))
+                     |> into_pages
   end
 
   @doc """
@@ -43,9 +44,11 @@ defmodule BrowsEx.Paginator do
   def into_lines({"h1", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{&attr_on/1, 1}]})
   end
-  def into_lines({"a", attrs, _children}, [line|rest]=lines) do
-    line = attrs |> get_index |> render_link(BrowsEx.Cursor.current, line)
-    [line|rest]
+  def into_lines({"a", attrs, _children}, [%Page{lines: [line|rest], links: links}=page|more]) do
+    index = attrs |> get_index
+
+    line = render_link(index, BrowsEx.Cursor.current, line)
+    [%{page|lines: [line|rest], links: [index|links]}|more]
   end
   def into_lines({"li", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{&print/1, "* "}]})
@@ -61,13 +64,13 @@ defmodule BrowsEx.Paginator do
   after traverse has walked children (if any).
   """
   @spec after_children(node :: tuple | any, lines :: list) :: list
-  def after_children({"h1", _attrs, _children}, [line|rest]) do
+  def after_children({"h1", _attrs, _children}, [%Page{lines: [line|rest]}=page|more]) do
     line = new_instruction(line, {&attr_off/1, 1})
-    [line|rest]
+    [%{page|lines: [line|rest]}|more]
   end
-  def after_children({"a", attrs, _children}, [line|rest]) do
+  def after_children({"a", attrs, _children}, [%Page{lines: [line|rest]}=page|more]) do
     line = attrs |> get_index |> after_link(BrowsEx.Cursor.current, line)
-    [line|rest]
+    [%{page|lines: [line|rest]}|more]
   end
   def after_children(_, lines), do: lines
 
@@ -98,13 +101,14 @@ defmodule BrowsEx.Paginator do
   @spec render_words(words :: list, lines :: list) :: list
   def render_words([], lines), do: lines
   def render_words(words, []), do: render_words(words, new_line)
-  def render_words([word|tail], [%Line{width: width, max: max}=line|rest]=lines) do
+  def render_words([word|tail], [%Page{lines: [%Line{width: width, max: max}=line|rest]}=page|more]=pages) do
     case String.length(word) + width do
       new_width when new_width >= max ->
-        render_words([word|tail], new_line(lines))
+        render_words([word|tail], new_line(pages))
       new_width ->
         line = new_word(line, word, new_width)
-        render_words(tail, [line|rest])
+        page = %{page|lines: [line|rest]}
+        render_words(tail, [page|more])
     end
   end
 
@@ -123,6 +127,14 @@ defmodule BrowsEx.Paginator do
     {height, width} = :cecho.getmaxyx
     lines = [%{struct(Line, attrs)|max: width}]
     [%Page{height: 1, max: height, lines: lines}]
+  end
+  def new_line([%Page{lines: []}=page|rest], attrs) do
+    {height, width} = {10, 80}
+    line = %{struct(Line, attrs)|max: width}
+    [%{page|lines: [line]}|rest]
+  end
+  def new_line([%Page{height: height, max: max}|_]=pages, attrs) when height == max do
+    new_line([%Page{max: max}|pages], attrs)
   end
   def new_line([%Page{lines: [%Line{max: max}|_]=lines, height: height}=page|rest], attrs) do
     attrs = attrs |> Map.put(:max, max)
@@ -152,12 +164,21 @@ defmodule BrowsEx.Paginator do
   @spec into_pages(lines :: list) :: list
   def into_pages(lines) do
     # {height, width} = {10, 80}
-    {height, _width} = :cecho.getmaxyx
+    # {height, _width} = :cecho.getmaxyx
 
+    # lines
+    # |> Enum.reduce([], &dedup_empty_lines(&1, &2))
+    # |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
+    # |> Enum.chunk(height, height, [])
     lines
-    |> Enum.reduce([], &dedup_empty_lines(&1, &2))
-    |> Enum.map(fn line -> Map.update!(line, :instructions, &(Enum.reverse(&1))) end)
-    |> Enum.chunk(height, height, [])
+    |> Enum.map(fn %Page{lines: lines}=page ->
+         %{page|
+           lines: lines
+                  |> Enum.map(fn %Line{instructions: instructions}=line ->
+                       %{line|instructions: Enum.reverse(instructions)}
+                     end)
+                  |> Enum.reverse}
+       end)
   end
 
   defp dedup_empty_lines(%Line{width: 0}, []), do: []

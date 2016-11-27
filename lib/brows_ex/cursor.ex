@@ -7,5 +7,7 @@ defmodule BrowsEx.Cursor do
 
   def prev, do: Agent.get_and_update(__MODULE__, &({&1-1, &1-1}))
 
+  def set(pos), do: Agent.get_and_update(__MODULE__, fn _ -> {pos, pos} end)
+
   def reset, do: Agent.get_and_update(__MODULE__, fn _ -> {1, 1} end)
 end
