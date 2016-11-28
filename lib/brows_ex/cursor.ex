@@ -15,7 +15,7 @@ defmodule BrowsEx.Cursor do
 
   def prev_link(page) do
     Agent.get_and_update(__MODULE__, fn
-      {0, 0} -> {0, 0}
+      {0, 0} -> {{0, 0}, {0, 0}}
       {0, link} -> {{0, link - 1}, {0, link - 1}}
       {page_index, 0} -> {{page_index - 1, page.link_count}, {page_index - 1, page.link_count}}
       {page_index, link} -> {{page_index, link - 1}, {page_index, link - 1}}
