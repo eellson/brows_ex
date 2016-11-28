@@ -73,6 +73,10 @@ defmodule BrowsEx.Paginator do
     line = new_instruction(line, {:end_link})
     [line|rest]
   end
+  def after_children({"li", _attrs, _children}, lines), do: lines
+  def after_children({name, _attrs, _children}, lines) when name in @block_level do
+    new_line(lines, %{})
+  end
   def after_children(_, lines), do: lines
 
   @doc """
