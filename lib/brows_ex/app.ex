@@ -29,19 +29,23 @@ defmodule BrowsEx.App do
   end
 
   def handle_char(?j, url, pages, page) do
-    {cursor, page} = next_link(page) |> get_current(pages)
+    final_page = Enum.at(pages, -1)
+    {cursor, page} = next_link(page, final_page) |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?k, url, pages, page) do
-    {cursor, page} = prev_link |> get_current(pages)
+    prev_page = Enum.find(pages, fn %Page{index: index} -> index == page.index - 1 end)
+
+    {cursor, page} = prev_link(prev_page) |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?n, url, pages, _page) do
-    {cursor, page} = next_page |> get_current(pages)
+    final_page = Enum.at(pages, -1)
+    {cursor, page} = next_page(final_page) |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
@@ -83,11 +87,11 @@ defmodule BrowsEx.App do
 
   defp reset_cursor, do: Cursor.reset
 
-  defp next_link(page), do: Cursor.next(page)
+  defp next_link(page, final_page), do: Cursor.next_link(page, final_page)
 
-  defp prev_link, do: Cursor.prev
+  defp prev_link(prev_page), do: Cursor.prev_link(prev_page)
 
-  defp next_page, do: Cursor.next_page
+  defp next_page(final_page), do: Cursor.next_page(final_page)
 
   defp prev_page, do: Cursor.prev_page
 
