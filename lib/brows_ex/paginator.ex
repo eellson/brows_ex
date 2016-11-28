@@ -44,7 +44,7 @@ defmodule BrowsEx.Paginator do
   def into_lines({"h1", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{:start_h1}]})
   end
-  def into_lines({"a", attrs, _children}=node, [line|rest]=lines) do
+  def into_lines({"a", _attrs, _children}=node, [line|rest]) do
     target = node |> Floki.attribute("href") |> List.first
 
     line = new_instruction(line, {:start_link, :id, target})
@@ -53,10 +53,10 @@ defmodule BrowsEx.Paginator do
   def into_lines({"li", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{:print, "* "}]})
   end
-  def into_lines({name, attrs, children}, lines) when name in @block_level do
+  def into_lines({name, _attrs, _children}, lines) when name in @block_level do
     new_line(lines, %{})
   end
-  def into_lines({name, _attrs, _children}, lines), do: lines
+  def into_lines({_name, _attrs, _children}, lines), do: lines
   def into_lines(<<leaf::binary>>, lines), do: leaf |> String.split |> render_words(lines)
 
   @doc """
@@ -69,7 +69,7 @@ defmodule BrowsEx.Paginator do
     line = new_instruction(line, {:end_h1})
     [line|rest]
   end
-  def after_children({"a", attrs, _children}, [line|rest]) do
+  def after_children({"a", _attrs, _children}, [line|rest]) do
     line = new_instruction(line, {:end_link})
     [line|rest]
   end
@@ -82,7 +82,7 @@ defmodule BrowsEx.Paginator do
   def render_link(index, cursor, line) when index == cursor do
     new_instruction(line, {:start_link})
   end
-  def render_link(index, _cursor, line), do: new_instruction(line, {:start_link})
+  def render_link(_index, _cursor, line), do: new_instruction(line, {:start_link})
 
   @doc """
   Adds attr_off instruction for link depending on whether cursor is over it or not.
@@ -91,7 +91,7 @@ defmodule BrowsEx.Paginator do
   def after_link(index, cursor, line) when index == cursor do
     new_instruction(line, {:end_link})
   end
-  def after_link(index, _cursor, line), do: new_instruction(line, {:end_link})
+  def after_link(_index, _cursor, line), do: new_instruction(line, {:end_link})
 
   @doc """
   Splits string into List of words, inserting into `%Line{}`s.

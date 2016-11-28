@@ -33,8 +33,6 @@ defmodule BrowsEx.Renderer do
     :cecho.refresh
   end
 
-  defp paginate(tree), do: BrowsEx.Paginator.paginate(tree)
-
   defp render_lines(%Page{lines: lines}, cursor) do
     Enum.map(lines, &execute_line(&1, cursor))
   end
