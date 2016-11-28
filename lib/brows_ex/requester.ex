@@ -2,13 +2,9 @@ defmodule BrowsEx.Requester do
   def request(url), do: get(url)
 
   def get(url) do
-    {:ok, response} =
-      url
-      |> HTTPoison.get
+    {:ok, response} = url |> HTTPoison.get([], [follow_redirect: true])
 
-    response
-    # |> IO.inspect
-    |> handle_response
+    handle_response(response)
   end
 
   def transform_url(url, base) do
