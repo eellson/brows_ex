@@ -34,6 +34,14 @@ defmodule BrowsEx.Renderer do
   end
 
   def max, do: :cecho.getmaxyx
+  def max(:x) do
+    {_, x} = max
+    x
+  end
+  def max(:y) do
+    {y, _} = max
+    y
+  end
 
   defp render_lines(%Page{lines: lines}, cursor) do
     Enum.map(lines, &execute_line(&1, cursor))

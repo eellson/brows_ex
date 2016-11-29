@@ -1,5 +1,5 @@
 defmodule BrowsEx.Paginator do
-  alias BrowsEx.{Line, Page}
+  alias BrowsEx.{Line, Page, Renderer}
   use Bitwise
 
   @no_render ~w(head script)
@@ -124,8 +124,7 @@ defmodule BrowsEx.Paginator do
   @spec new_line(lines :: list, attrs :: map) :: list
   def new_line(lines \\ [], attrs \\ %{})
   def new_line([], attrs) do
-    {_height, width} = :cecho.getmaxyx
-    [%{struct(Line, attrs)|max: width}]
+    [%{struct(Line, attrs)|max: get_max_width}]
   end
   def new_line([%Line{max: max}|_] = lines, attrs) do
     attrs = attrs |> Map.put(:max, max)
@@ -157,7 +156,7 @@ defmodule BrowsEx.Paginator do
   """
   @spec into_pages(lines :: list) :: list
   def into_pages(lines) do
-    {height, _width} = :cecho.getmaxyx
+    height = get_max_height
 
     {pages, _count} =
       lines
@@ -175,4 +174,7 @@ defmodule BrowsEx.Paginator do
   defp dedup_empty_lines(line, []), do: [line]
   defp dedup_empty_lines(%Line{width: 0}, [%Line{width: 0}|_] = acc), do: acc
   defp dedup_empty_lines(line, acc), do: [line|acc]
+
+  defp get_max_width, do: Renderer.max(:x)
+  defp get_max_height, do: Renderer.max(:y)
 end
