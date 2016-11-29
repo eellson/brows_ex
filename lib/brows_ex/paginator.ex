@@ -7,6 +7,16 @@ defmodule BrowsEx.Paginator do
     figcaption figure footer form h1 h2 h3 h4 h5 h6 header hgroup hr li main nav
     noscript ol output p pre section table tfoot ul video tr)
 
+  @doc """
+  Takes a tree of nodes and reduces it into a list of `%Page{}` structs.
+
+  Each `%Page{}` stores data we can use for rendering:
+
+  * lines: a `List` of `%Line{}` structs for the given page.
+  * the index of the page
+  * the count of links on the page
+  """
+  @spec paginate(tree :: tuple) :: list
   def paginate(tree) do
     tree |> traverse([], &into_lines(&1, &2), &after_children(&1, &2)) |> into_pages
   end
