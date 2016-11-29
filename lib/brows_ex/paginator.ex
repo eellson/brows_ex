@@ -38,7 +38,13 @@ defmodule BrowsEx.Paginator do
   @doc """
   Handles nodes being passed from `traverse`, returning transformed accumulator.
 
-  Called before `traverse/4` continues with children (if any).
+  Called before `traverse/4` continues with children (if any), this function
+  handles inserting element-specific information into lines. For instance:
+
+  * h1 -> insert {:start_h1} into new line
+  * a -> insert {:start_link, :id, target} into current line
+  * li -> insert {:print, "* "} into new line
+  * text -> handled in `render_words/2`
   """
   @spec into_lines(node :: tuple | String.t, lines :: list) :: list
   def into_lines({"h1", _attrs, _children}, lines) do
@@ -62,7 +68,9 @@ defmodule BrowsEx.Paginator do
   @doc """
   Handles nodes being passed from `traverse`, returning transformed accumulator.
 
-  Called after traverse has walked children (if any).
+  Called after traverse has walked children (if any), this function handles
+  inserting newlines after most block level elements, and indicators that a
+  particular element is closed.
   """
   @spec after_children(node :: tuple | any, lines :: list) :: list
   def after_children({"h1", _attrs, _children}, [line|rest]) do
@@ -78,24 +86,6 @@ defmodule BrowsEx.Paginator do
     new_line(lines, %{})
   end
   def after_children(_, lines), do: lines
-
-  @doc """
-  Adds attr_on instruction for link depending on whether cursor is over it or not.
-  """
-  @spec render_link(index :: integer, cursor :: integer, line :: struct) :: struct
-  def render_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {:start_link})
-  end
-  def render_link(_index, _cursor, line), do: new_instruction(line, {:start_link})
-
-  @doc """
-  Adds attr_off instruction for link depending on whether cursor is over it or not.
-  """
-  @spec after_link(index :: integer, cursor :: integer, line :: struct) :: struct
-  def after_link(index, cursor, line) when index == cursor do
-    new_instruction(line, {:end_link})
-  end
-  def after_link(_index, _cursor, line), do: new_instruction(line, {:end_link})
 
   @doc """
   Splits string into List of words, inserting into `%Line{}`s.
@@ -117,7 +107,7 @@ defmodule BrowsEx.Paginator do
   end
 
   @doc """
-  Appends a new `%Line{}` to `lines`.
+  Prepends a new `%Line{}` to `lines`.
 
   If passed in a map of attrs, these will populate the created `%Line`.
   """
@@ -133,7 +123,7 @@ defmodule BrowsEx.Paginator do
   end
 
   @doc """
-  Appends a new instruction to the given `%Line{}`.
+  Prepends a new instruction to the given `%Line{}`.
   """
   @spec new_instruction(line :: struct, instruction :: tuple) :: struct
   def new_instruction(%Line{instructions: instructions}=line, instruction) do
@@ -141,7 +131,7 @@ defmodule BrowsEx.Paginator do
   end
 
   @doc """
-  Appends a new print instruction to the given `%Line{}`, and updates line's
+  Prepends a new print instruction to the given `%Line{}`, and updates line's
   `width` with new value.
   """
   @spec new_word(line :: struct, word :: String.t, width :: integer) :: struct
