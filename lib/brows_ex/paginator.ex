@@ -28,12 +28,12 @@ defmodule BrowsEx.Paginator do
 
   Does not apply `fun` or `post` to `List`s of children.
   """
-  @spec traverse(node :: tuple | list | String.t, acc :: term, fun :: fun, post :: fun) :: term
+  @spec traverse(el :: tuple | list | String.t, acc :: term, fun :: fun, post :: fun) :: term
   def traverse({name, _, _}, acc, _fun, _post) when name in @no_render, do: acc
-  def traverse({_name, _attrs, children}=node, acc, fun, post) do
-    acc = fun.(node, acc)
+  def traverse({_name, _attrs, children} = el, acc, fun, post) do
+    acc = fun.(el, acc)
     acc = traverse(children, acc, fun, post)
-    post.(node, acc)
+    post.(el, acc)
   end
   def traverse([child|siblings], acc, fun, post) do
     acc = traverse(child, acc, fun, post)
@@ -56,12 +56,12 @@ defmodule BrowsEx.Paginator do
   * li -> insert {:print, "* "} into new line
   * text -> handled in `render_words/2`
   """
-  @spec into_lines(node :: tuple | String.t, lines :: list) :: list
+  @spec into_lines(el :: tuple | String.t, lines :: list) :: list
   def into_lines({"h1", _attrs, _children}, lines) do
     new_line(lines, %{instructions: [{:start_h1}]})
   end
-  def into_lines({"a", _attrs, _children}=node, [line|rest]) do
-    target = node |> Floki.attribute("href") |> List.first
+  def into_lines({"a", _attrs, _children} = el, [line|rest]) do
+    target = el |> Floki.attribute("href") |> List.first
 
     line = new_instruction(line, {:start_link, :id, target})
     [line|rest]
@@ -106,7 +106,7 @@ defmodule BrowsEx.Paginator do
   @spec render_words(words :: list, lines :: list) :: list
   def render_words([], lines), do: lines
   def render_words(words, []), do: render_words(words, new_line)
-  def render_words([word|tail], [%Line{width: width, max: max}=line|rest]=lines) do
+  def render_words([word|tail], [%Line{width: width, max: max} = line|rest] = lines) do
     case String.length(word) + width do
       new_width when new_width >= max ->
         render_words([word|tail], new_line(lines))
@@ -127,7 +127,7 @@ defmodule BrowsEx.Paginator do
     {_height, width} = :cecho.getmaxyx
     [%{struct(Line, attrs)|max: width}]
   end
-  def new_line([%Line{max: max}|_]=lines, attrs) do
+  def new_line([%Line{max: max}|_] = lines, attrs) do
     attrs = attrs |> Map.put(:max, max)
     [struct(Line, attrs)|lines]
   end
@@ -136,7 +136,7 @@ defmodule BrowsEx.Paginator do
   Prepends a new instruction to the given `%Line{}`.
   """
   @spec new_instruction(line :: struct, instruction :: tuple) :: struct
-  def new_instruction(%Line{instructions: instructions}=line, instruction) do
+  def new_instruction(%Line{instructions: instructions} = line, instruction) do
     %{line|instructions: [instruction|instructions]}
   end
 
@@ -145,7 +145,7 @@ defmodule BrowsEx.Paginator do
   `width` with new value.
   """
   @spec new_word(line :: struct, word :: String.t, width :: integer) :: struct
-  def new_word(%Line{instructions: instructions}=line, word, width) do
+  def new_word(%Line{instructions: instructions} = line, word, width) do
     %{line|instructions: [{:print, "#{word} "}|instructions], width: width + 1}
   end
 
@@ -173,6 +173,6 @@ defmodule BrowsEx.Paginator do
 
   defp dedup_empty_lines(%Line{width: 0}, []), do: []
   defp dedup_empty_lines(line, []), do: [line]
-  defp dedup_empty_lines(%Line{width: 0}, [%Line{width: 0}|_]=acc), do: acc
+  defp dedup_empty_lines(%Line{width: 0}, [%Line{width: 0}|_] = acc), do: acc
   defp dedup_empty_lines(line, acc), do: [line|acc]
 end

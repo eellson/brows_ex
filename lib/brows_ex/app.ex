@@ -36,7 +36,7 @@ defmodule BrowsEx.App do
   Finds current page given cursor and list of pages.
   """
   @spec get_current(cursor :: tuple, pages :: list) :: tuple
-  def get_current({page_index, _link}=cursor, pages) do
+  def get_current({page_index, _link} = cursor, pages) do
     page = Enum.find(pages, fn %Page{index: index} -> index == page_index end)
 
     {cursor, page}
@@ -61,27 +61,27 @@ defmodule BrowsEx.App do
   @spec handle_char(char, url :: String.t, pages :: list, page :: struct) :: no_return
   def handle_char(?j, url, pages, page) do
     final_page = Enum.at(pages, -1)
-    {cursor, page} = next_link(page, final_page) |> get_current(pages)
+    {cursor, page} = page |> to_next_link(final_page) |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?k, url, pages, page) do
     prev_page = Enum.find(pages, fn %Page{index: index} -> index == page.index - 1 end)
-    {cursor, page} = prev_link(prev_page) |> get_current(pages)
+    {cursor, page} = prev_page |> to_prev_link |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?n, url, pages, _page) do
     final_page = Enum.at(pages, -1)
-    {cursor, page} = next_page(final_page) |> get_current(pages)
+    {cursor, page} = final_page |> to_next_page |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
   end
   def handle_char(?p, url, pages, _page) do
-    {cursor, page} = prev_page |> get_current(pages)
+    {cursor, page} = to_prev_page |> get_current(pages)
 
     render(url, page, cursor)
     wait_for_input(url, pages, page)
@@ -121,13 +121,13 @@ defmodule BrowsEx.App do
 
   defp reset_cursor, do: Cursor.reset
 
-  defp next_link(page, final_page), do: Cursor.next_link(page, final_page)
+  defp to_next_link(page, final_page), do: Cursor.next_link(page, final_page)
 
-  defp prev_link(prev_page), do: Cursor.prev_link(prev_page)
+  defp to_prev_link(prev_page), do: Cursor.prev_link(prev_page)
 
-  defp next_page(final_page), do: Cursor.next_page(final_page)
+  defp to_next_page(final_page), do: Cursor.next_page(final_page)
 
-  defp prev_page, do: Cursor.prev_page
+  defp to_prev_page, do: Cursor.prev_page
 
   defp init_renderer, do: Renderer.init
 
