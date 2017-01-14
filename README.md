@@ -1,6 +1,9 @@
 # BrowsEx
 
-**TODO: Add description**
+BrowsEx is a toy TUI browser, mostly build as a bit of fun.
+
+## I'd recommend you don't use this to browse the web unless you trust the urls
+you're hitting.
 
 ## Installation
 
@@ -22,3 +25,8 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
     end
     ```
 
+## TODO
+
+- [ ] Fill out test suite.
+- [ ] Handle forms/inputs.
+- [ ] History/back functionality.
