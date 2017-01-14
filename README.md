@@ -31,5 +31,6 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
   * Currently we naively unzip these, unsure if that's wise (https://github.com/benoitc/hackney/issues/155)
 - [ ] SSL verification.
 - [ ] Fill out test suite.
+- [ ] Better documentation, specs, types.
 - [ ] Handle forms/inputs.
 - [ ] History/back functionality.
