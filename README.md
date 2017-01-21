@@ -5,6 +5,8 @@ BrowsEx is a toy TUI browser, mostly built as a bit of fun.
 **I'd recommend you don't use this to browse the web unless you trust the urls
 you're hitting.**
 
+[![asciicast](https://asciinema.org/a/4dqzbj0ws1osllpdwialol347.png)](https://asciinema.org/a/4dqzbj0ws1osllpdwialol347)
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
